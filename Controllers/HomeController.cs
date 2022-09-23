@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using FinanceBot.Models;
+using FinanceBot.Services;
+using Telegram.Bot;
 
 namespace FinanceBot.Controllers;
 
@@ -13,8 +15,10 @@ public class HomeController : Controller
         _logger = logger;
     }
 
-    public IActionResult Index()
+    public IActionResult Index(TelegramBotService tgBotService)
     {
+        var client = tgBotService.Client;
+        
         return View();
     }
 

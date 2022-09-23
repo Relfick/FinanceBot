@@ -1,7 +1,11 @@
+using FinanceBot.Services;
+using Telegram.Bot;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddSingleton<TelegramBotService>();
 
 var app = builder.Build();
 
