@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
@@ -11,6 +12,7 @@ using Microsoft.Net.Http.Headers;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
+using CacheControlHeaderValue = System.Net.Http.Headers.CacheControlHeaderValue;
 using User = FinanceBot.Models.User;
 
 namespace FinanceBot.Services;
@@ -98,37 +100,6 @@ public class TelegramBotService
         }
     }
     
-    private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-    {
-        // Only process Message updates: https://core.telegram.org/bots/api#message
-        if (update.Message is not { } message)
-            return;
-        // Only process text messages
-        if (message.Text is not { } messageText)
-            return;
-
-        var chatId = message.Chat.Id;
-
-        string result = "a";
-        if (messageText == "/start")
-        {
-            // result = await RegisterUser(message.From!);
-        }
-
-        Console.WriteLine($"result: {result}");
-        Console.WriteLine($"Received a '{messageText}' message in chat {chatId}.");
-
-        await botClient.SendTextMessageAsync(
-            chatId: chatId,
-            text: result,
-            cancellationToken: cancellationToken);
-        
-        await botClient.SendTextMessageAsync(
-            chatId: chatId,
-            text: "You said:\n" + messageText,
-            cancellationToken: cancellationToken);
-    }
-
     private async Task BotOnMessageReceived(Message message)
     {
         Console.WriteLine($"Receive message type: {message.Type}");
@@ -256,11 +227,12 @@ public class TelegramBotService
             Headers =
             {
                 { HeaderNames.Accept, "application/json" },
-                { HeaderNames.UserAgent, "HttpRequestsSample" }
+                { HeaderNames.UserAgent, "HttpRequestsSample" },
             }
         };
         
         var httpClient = _httpClientFactory.CreateClient();
+        
         var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage);
 
         if (httpResponseMessage.StatusCode != HttpStatusCode.NotFound)

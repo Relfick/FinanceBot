@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<TelegramBotService>();
-builder.Services.AddDbContext<ApplicationContext>(ServiceLifetime.Singleton);
+builder.Services.AddDbContext<ApplicationContext>(ServiceLifetime.Scoped);
 builder.Services.AddHttpClient();
 
 var app = builder.Build();

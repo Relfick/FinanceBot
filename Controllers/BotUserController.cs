@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FinanceBot.Models;
+using Microsoft.Net.Http.Headers;
 
 namespace FinanceBot.Controllers;
 
@@ -45,7 +46,6 @@ public class BotUserController : ControllerBase
         {
             return NotFound();
         }
-
         return user;
     }
 
