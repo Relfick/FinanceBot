@@ -8,33 +8,33 @@ namespace FinanceBot.Controllers
     [ApiController]
     public class ExpenseController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationContext _db;
 
-        public ExpenseController(ApplicationContext context)
+        public ExpenseController(ApplicationContext db)
         {
-            _context = context;
+            _db = db;
         }
 
         // GET: api/Expense
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Expense>>> GetExpenses()
         {
-          if (_context.Expenses == null)
+          if (_db.Expenses == null)
           {
               return NotFound();
           }
-            return await _context.Expenses.ToListAsync();
+            return await _db.Expenses.ToListAsync();
         }
 
         // GET: api/Expense/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Expense>> GetExpense(int id)
         {
-          if (_context.Expenses == null)
+          if (_db.Expenses == null)
           {
               return NotFound();
           }
-            var expense = await _context.Expenses.FindAsync(id);
+            var expense = await _db.Expenses.FindAsync(id);
 
             if (expense == null)
             {
@@ -54,11 +54,11 @@ namespace FinanceBot.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(expense).State = EntityState.Modified;
+            _db.Entry(expense).State = EntityState.Modified;
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _db.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -80,39 +80,39 @@ namespace FinanceBot.Controllers
         [HttpPost]
         public async Task<ActionResult<Expense>> PostExpense(Expense expense)
         {
-          if (_context.Expenses == null)
+          if (_db.Expenses == null)
           {
               return Problem("Entity set 'ApplicationContext.Expenses'  is null.");
           }
-            _context.Expenses.Add(expense);
-            await _context.SaveChangesAsync();
+          _db.Expenses.Add(expense);
+          await _db.SaveChangesAsync();
 
-            return CreatedAtAction("GetExpense", new { id = expense.id }, expense);
+          return CreatedAtAction("GetExpense", new { id = expense.id }, expense);
         }
 
         // DELETE: api/Expense/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteExpense(int id)
         {
-            if (_context.Expenses == null)
+            if (_db.Expenses == null)
             {
                 return NotFound();
             }
-            var expense = await _context.Expenses.FindAsync(id);
+            var expense = await _db.Expenses.FindAsync(id);
             if (expense == null)
             {
                 return NotFound();
             }
 
-            _context.Expenses.Remove(expense);
-            await _context.SaveChangesAsync();
+            _db.Expenses.Remove(expense);
+            await _db.SaveChangesAsync();
 
             return NoContent();
         }
 
         private bool ExpenseExists(int id)
         {
-            return (_context.Expenses?.Any(e => e.id == id)).GetValueOrDefault();
+            return (_db.Expenses?.Any(e => e.id == id)).GetValueOrDefault();
         }
     }
 }

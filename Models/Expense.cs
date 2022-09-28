@@ -13,17 +13,16 @@ public class Expense
     public long userId { get; set; }
     public string name { get; set; }
     public ExpenseCategory expenseCategory { get; set; }
-    public DateOnly date { get; set; }
-    public TimeOnly time { get; set; }
+    public int cost { get; set; }
+    public DateTime date { get; set; }
     
-    public Expense(int id, long userId, string name, ExpenseCategory expenseCategory, DateOnly date, TimeOnly time)
+    public Expense(long userId, string name, int cost, ExpenseCategory expenseCategory, DateTime date)
     {
-        this.id = id;
         this.userId = userId;
         this.name = name;
+        this.cost = cost;
         this.expenseCategory = expenseCategory;
         this.date = date;
-        this.time = time;
     }
 
     

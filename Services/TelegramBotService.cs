@@ -1,8 +1,10 @@
 ﻿using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using FinanceBot.Models;
+using Microsoft.AspNetCore.Mvc;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -12,7 +14,6 @@ using Microsoft.Net.Http.Headers;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
-using CacheControlHeaderValue = System.Net.Http.Headers.CacheControlHeaderValue;
 using User = FinanceBot.Models.User;
 
 namespace FinanceBot.Services;
@@ -48,7 +49,7 @@ public class TelegramBotService
             }, cancellationToken: cts.Token);
                 
             _botClient.StartReceiving(
-                updateHandler: HandleUpdateAltAsync,
+                updateHandler: HandleUpdateAsync,
                 pollingErrorHandler: HandlePollingErrorAsync,
                 receiverOptions: receiverOptions,
                 cancellationToken: cts.Token
@@ -71,7 +72,7 @@ public class TelegramBotService
         }
     }
 
-    private async Task HandleUpdateAltAsync(ITelegramBotClient botClient, Update update,
+    private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
         CancellationToken cancellationToken)
     {
         var handler = update.Type switch
@@ -99,12 +100,13 @@ public class TelegramBotService
             // await HandlePollingErrorAsync(exception);
         }
     }
-    
+
     private async Task BotOnMessageReceived(Message message)
     {
         Console.WriteLine($"Receive message type: {message.Type}");
         if (message.Type != MessageType.Text)
             return;
+        Console.WriteLine($"Message: {message.Text}");
 
         var action = message.Text!.Split(' ')[0] switch
         {
@@ -114,7 +116,8 @@ public class TelegramBotService
             "/remove"   => RemoveKeyboard(_botClient, message),
             // "/photo"    => SendFile(_botClient, message),
             // "/request"  => RequestContactAndLocation(_botClient, message),
-            _           => Usage(_botClient, message)
+            "/usage"     => Usage(_botClient, message),
+            _            => AddExpense(_botClient, message)
         };
         Message sentMessage = await action;
         Console.WriteLine($"The message was sent with id: {sentMessage.MessageId}");
@@ -216,13 +219,114 @@ public class TelegramBotService
                                                   replyMarkup: new ReplyKeyboardRemove());
         }
     }
-    
-    async Task<Message> RegisterUser(ITelegramBotClient bot, Message message)
+
+    private async Task<Message> AddExpense(ITelegramBotClient bot, Message message)
     {
-        Telegram.Bot.Types.User user = message.From!;
+        var httpClient = _httpClientFactory.CreateClient();
+        var tgUser = message.From!;
+
+        var userId = tgUser.Id;
+        var r = new Regex(@"(?<name>(\w+\s)+)(?<cost>\d+)\s(?<category>(\w+\s*)+)");
+        var m = r.Match(message.Text!);
+        if (!m.Success)
+        {
+            return await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: "Используйте формат {покупка} {цена} {категория}",
+                replyMarkup: new ReplyKeyboardRemove());
+        }
+
+        var expenseName = m.Result("${name}").Trim();
+        var expenseCost = int.Parse(m.Result("${cost}"));
+
+        var foodCategoryAliases = new List<string> { "food", "еда", "продукты" };
+        var clothesCategoryAliases = new List<string> { "clothes", "одежда", "шмот", "шмотки", "шмотье", "крутая одежда" };
+        var funCategoryAliases = new List<string> { "fun", "развлечение", "отдых", "кафе и рестораны" };
+        var categoryAliases = new List<List<string>> { foodCategoryAliases, clothesCategoryAliases, funCategoryAliases };
+
+        string category = m.Result("${category}");
+        int categoryId;
+        bool validCategory = false;
+        for (categoryId = 0; categoryId < categoryAliases.Count; categoryId++)
+        {
+            if (categoryAliases[categoryId].Contains(category.ToLower().Trim()))
+            {
+                validCategory = true;
+                break;
+            }
+        }
+        if (!validCategory)
+        {
+            return await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: $"Несуществующая категория: {category}",
+                replyMarkup: new ReplyKeyboardRemove()); 
+        }
+        var expenseCategory = (ExpenseCategory)categoryId;
+
+        var expenseDate = DateTime.Now;
+
+        var expense = new Expense(
+            userId,
+            expenseName,
+            expenseCost,
+            expenseCategory,
+            expenseDate);
+        
+        var expenseJson = new StringContent(
+            JsonSerializer.Serialize(expense),
+            Encoding.UTF8,
+            MediaTypeNames.Application.Json);
+        
+        var httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/Expense", expenseJson);
+        string responseMessageText = 
+            httpResponseMessage.IsSuccessStatusCode ? 
+                "Добавили!" : 
+                "Не получилось добавить :(";
+        
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: responseMessageText,
+            replyMarkup: new ReplyKeyboardRemove());
+    }
+
+    private async Task<Message> RegisterUser(ITelegramBotClient bot, Message message)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var tgUser = message.From!;
+
+        if (await UserExists(tgUser, httpClient))
+        {
+            return await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: "user exists or error",
+                replyMarkup: new ReplyKeyboardRemove());
+        }
+        
+        var newUser = new User(tgUser.Id, tgUser.FirstName, tgUser.Username ?? "");
+        var newUserJson = new StringContent(
+            JsonSerializer.Serialize(newUser),
+            Encoding.UTF8,
+            MediaTypeNames.Application.Json);
+
+        var httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/BotUser", newUserJson);
+        string responseMessageText = 
+            httpResponseMessage.IsSuccessStatusCode ? 
+            "You are successfully registered" : 
+            "Error";
+
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: responseMessageText,
+            replyMarkup: new ReplyKeyboardRemove());
+    }
+
+    private async Task<bool> UserExists(Telegram.Bot.Types.User tgUser, HttpClient httpClient)
+    {
+       
         var httpRequestMessage = new HttpRequestMessage(
             HttpMethod.Get,
-            $"https://localhost:7166/api/BotUser/{user.Id}")
+            $"https://localhost:7166/api/BotUser/{tgUser.Id}")
         {
             Headers =
             {
@@ -231,33 +335,8 @@ public class TelegramBotService
             }
         };
         
-        var httpClient = _httpClientFactory.CreateClient();
-        
         var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage);
-
-        if (httpResponseMessage.StatusCode != HttpStatusCode.NotFound)
-        {
-            return await bot.SendTextMessageAsync(chatId: message.Chat.Id,
-                text: "user exists or error",
-                replyMarkup: new ReplyKeyboardRemove());
-        }
-
-        var newUser = new User(user.Id, user.FirstName, user.Username ?? "");
-        
-        var newUserJson = new StringContent(
-            JsonSerializer.Serialize(newUser),
-            Encoding.UTF8,
-            MediaTypeNames.Application.Json);
-
-        httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/BotUser", newUserJson);
-        string responseMessageText = 
-            httpResponseMessage.IsSuccessStatusCode ? 
-            "You are successfully registered" : 
-            "Error";
-
-        return await bot.SendTextMessageAsync(chatId: message.Chat.Id,
-            text: responseMessageText,
-            replyMarkup: new ReplyKeyboardRemove());
+        return httpResponseMessage.StatusCode != HttpStatusCode.NotFound;
     }
 
     // Process Inline Keyboard callback data

@@ -13,7 +13,6 @@ public class HomeController : Controller
     
     private TelegramBotService TelegramBotService { get; set; }
     
-    
     public HomeController(ApplicationContext applicationContext, TelegramBotService telegramBotService)
     {
         _db = applicationContext;
