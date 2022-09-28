@@ -44,8 +44,7 @@ public class TelegramBotService
         {
             await _botClient.SetMyCommandsAsync(new List<BotCommand>()
             {
-                new BotCommand() { Command = "/command1", Description = "Description of command 1" },
-                new BotCommand() { Command = "/command2", Description = "Description of command 2" },
+                new BotCommand() { Command = "/help", Description = "Справка" }
             }, cancellationToken: cts.Token);
                 
             _botClient.StartReceiving(
@@ -116,8 +115,8 @@ public class TelegramBotService
             "/remove"   => RemoveKeyboard(_botClient, message),
             // "/photo"    => SendFile(_botClient, message),
             // "/request"  => RequestContactAndLocation(_botClient, message),
-            "/usage"     => Usage(_botClient, message),
-            _            => AddExpense(_botClient, message)
+            "/help"     => Usage(_botClient, message),
+            _           => AddExpense(_botClient, message)
         };
         Message sentMessage = await action;
         Console.WriteLine($"The message was sent with id: {sentMessage.MessageId}");
@@ -207,12 +206,17 @@ public class TelegramBotService
 
         static async Task<Message> Usage(ITelegramBotClient bot, Message message)
         {
-            const string usage = "Usage:\n" +
-                                 "/inline   - send inline keyboard\n" +
-                                 "/keyboard - send custom keyboard\n" +
-                                 "/remove   - remove custom keyboard\n" +
-                                 "/photo    - send a photo\n" +
-                                 "/request  - request location or contact";
+            const string usage = "Введи траты в формате {Название} {Стоимость} {Категория}\n\n" +
+                                 "Доступные категории: {еда}, {одежда}, {развлечения}\n" +
+                                 "(на самом деле их больше, но ты о них не узнаешь\n\n" +
+                                 "Позже появится возможность редактирования категорий.";
+            
+            // const string usage = "Usage:\n" +
+            //                      "/inline   - send inline keyboard\n" +
+            //                      "/keyboard - send custom keyboard\n" +
+            //                      "/remove   - remove custom keyboard\n" +
+            //                      "/photo    - send a photo\n" +
+            //                      "/request  - request location or contact";
 
             return await bot.SendTextMessageAsync(chatId: message.Chat.Id,
                                                   text: usage,
@@ -226,7 +230,7 @@ public class TelegramBotService
         var tgUser = message.From!;
 
         var userId = tgUser.Id;
-        var r = new Regex(@"(?<name>(\w+\s)+)(?<cost>\d+)\s(?<category>(\w+\s*)+)");
+        var r = new Regex(@"(?<name>(\w+\s)+)(?<cost>\d+)\s(?<category>(\w+\s*)+)", RegexOptions.Compiled);
         var m = r.Match(message.Text!);
         if (!m.Success)
         {
@@ -299,7 +303,7 @@ public class TelegramBotService
         {
             return await bot.SendTextMessageAsync(
                 chatId: message.Chat.Id,
-                text: "user exists or error",
+                text: "Ты уже в списочке, не переживай.",
                 replyMarkup: new ReplyKeyboardRemove());
         }
         
@@ -312,7 +316,9 @@ public class TelegramBotService
         var httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/BotUser", newUserJson);
         string responseMessageText = 
             httpResponseMessage.IsSuccessStatusCode ? 
-            "You are successfully registered" : 
+            "Привет! Ты успешно зарегистрирован!\n\n" +
+            "Доступные пока команды: \n\n" +
+            "/help" : 
             "Error";
 
         return await bot.SendTextMessageAsync(
