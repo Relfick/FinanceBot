@@ -27,7 +27,6 @@ public class TelegramBotService
     public TelegramBotService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         _httpClientFactory = httpClientFactory;
-        
         _botClient = new TelegramBotClient(configuration["BotToken"]);
         
         Console.WriteLine("Запустились!");
@@ -42,9 +41,10 @@ public class TelegramBotService
         };
         try
         {
-            await _botClient.SetMyCommandsAsync(new List<BotCommand>()
+            await _botClient.SetMyCommandsAsync(new List<BotCommand>
             {
-                new BotCommand() { Command = "/help", Description = "Справка" }
+                new() { Command = "/help", Description = "Справка" },
+                new() { Command = "/categories", Description = "Редактирование категорий трат" },
             }, cancellationToken: cts.Token);
                 
             _botClient.StartReceiving(
@@ -109,14 +109,15 @@ public class TelegramBotService
 
         var action = message.Text!.Split(' ')[0] switch
         {
-            "/start"    => RegisterUser(_botClient, message),
-            "/inline"   => SendInlineKeyboard(_botClient, message),
-            "/keyboard" => SendReplyKeyboard(_botClient, message),
-            "/remove"   => RemoveKeyboard(_botClient, message),
+            "/start"    => RegisterUserHandler(_botClient, message),
+            "/categories"    => CategoryHandler(_botClient, message),
+            // "/inline"   => SendInlineKeyboard(_botClient, message),
+            // "/keyboard" => SendReplyKeyboard(_botClient, message),
+            // "/remove"   => RemoveKeyboard(_botClient, message),
             // "/photo"    => SendFile(_botClient, message),
             // "/request"  => RequestContactAndLocation(_botClient, message),
-            "/help"     => Usage(_botClient, message),
-            _           => AddExpense(_botClient, message)
+            "/help"     => UsageHandler(_botClient, message),
+            _           => AddExpenseHandler(_botClient, message)
         };
         Message sentMessage = await action;
         Console.WriteLine($"The message was sent with id: {sentMessage.MessageId}");
@@ -152,24 +153,24 @@ public class TelegramBotService
                                                   text: "Choose",
                                                   replyMarkup: inlineKeyboard);
         }
-
+        
         static async Task<Message> SendReplyKeyboard(ITelegramBotClient bot, Message message)
         {
             ReplyKeyboardMarkup replyKeyboardMarkup = new(
                 new[]
                 {
-                        new KeyboardButton[] { "1.1", "1.2" },
-                        new KeyboardButton[] { "2.1", "2.2" },
+                    new KeyboardButton[] { "Добавить", "Удалить" },
+                    new KeyboardButton[] { "Изменить", "Назад" },
                 })
-                {
-                    ResizeKeyboard = true
-                };
+            {
+                ResizeKeyboard = true
+            };
 
             return await bot.SendTextMessageAsync(chatId: message.Chat.Id,
-                                                  text: "Choose",
-                                                  replyMarkup: replyKeyboardMarkup);
+                text: "Choose",
+                replyMarkup: replyKeyboardMarkup);
         }
-
+        
         static async Task<Message> RemoveKeyboard(ITelegramBotClient bot, Message message)
         {
             return await bot.SendTextMessageAsync(chatId: message.Chat.Id,
@@ -204,7 +205,7 @@ public class TelegramBotService
                                                   replyMarkup: requestReplyKeyboard);
         }
 
-        static async Task<Message> Usage(ITelegramBotClient bot, Message message)
+        static async Task<Message> UsageHandler(ITelegramBotClient bot, Message message)
         {
             const string usage = "Введи траты в формате {Название} {Стоимость} {Категория}\n\n" +
                                  "Доступные категории: {еда}, {одежда}, {развлечения}\n" +
@@ -224,7 +225,109 @@ public class TelegramBotService
         }
     }
 
-    private async Task<Message> AddExpense(ITelegramBotClient bot, Message message)
+    private async Task<Message> CategoryHandler(ITelegramBotClient bot, Message message)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var tgUser = message.From!;
+
+        var userId = tgUser.Id;
+
+        var userCategories = GetUserCategories();
+
+        var action = await ShowCategoriesMessage(bot, message.Chat.Id, userCategories);
+        return action;
+
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: "жопапенис",
+            replyMarkup: new ReplyKeyboardRemove());
+    }
+
+    private async Task<Message> ShowCategoriesMessage(
+        ITelegramBotClient bot, 
+        long chatId, 
+        List<string> userCategories)
+    {
+        var responseMessage = new StringBuilder();
+        responseMessage.Append("Текущие категории:\n\n");
+        foreach (string category in userCategories)
+        {
+            responseMessage.Append($"    {category}\n");
+        }
+
+        responseMessage.Append("\nВыберите действие:");
+
+        InlineKeyboardMarkup inlineKeyboard = new(
+            new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Добавить", "add"),
+                    InlineKeyboardButton.WithCallbackData("Удалить", "remove"),
+                },
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Изменить", "edit"),
+                    InlineKeyboardButton.WithCallbackData("Назад", "back"),
+                },
+            });
+        
+        return await bot.SendTextMessageAsync(
+            chatId: chatId,
+            text: responseMessage.ToString(),
+            replyMarkup: inlineKeyboard,
+            allowSendingWithoutReply: false);
+    }
+
+    private async Task<Message> AddCategoryHandler(ITelegramBotClient bot, Message message)
+    {
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: "Выбраное действие: Добавить",
+            replyMarkup: new ReplyKeyboardRemove()); 
+    }
+    
+    private async Task<Message> EditCategoryHandler(ITelegramBotClient bot, Message message)
+    {
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: "Выбраное действие: Редактировать",
+            replyMarkup: new ReplyKeyboardRemove()); 
+    }
+    
+    private async Task<Message> RemoveCategoryHandler(ITelegramBotClient bot, Message message)
+    {
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: "Выбраное действие: Удалить",
+            replyMarkup: new ReplyKeyboardRemove()); 
+    }
+    
+    private async Task<Message> BackCategoryHandler(ITelegramBotClient bot, Message message)
+    {
+        var chatId = message.Chat.Id;
+        await bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: "Выбраное действие: Назад",
+            replyMarkup: new ReplyKeyboardRemove()); 
+    }
+    
+    private async Task<Message> UnknownCategoryHandler(ITelegramBotClient bot, Message message)
+    {
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: "Выбраное действие: Неизвестно",
+            replyMarkup: new ReplyKeyboardRemove()); 
+    }
+    
+
+    private List<string> GetUserCategories()
+    {
+        return new List<string> { "еда", "одежда", "продукты" };
+    }
+
+    private async Task<Message> AddExpenseHandler(ITelegramBotClient bot, Message message)
     {
         var httpClient = _httpClientFactory.CreateClient();
         var tgUser = message.From!;
@@ -266,7 +369,8 @@ public class TelegramBotService
                 text: $"Несуществующая категория: {category}",
                 replyMarkup: new ReplyKeyboardRemove()); 
         }
-        var expenseCategory = (ExpenseCategory)categoryId;
+        
+        var expenseCategory = categoryAliases[categoryId][0];
 
         var expenseDate = DateTime.Now;
 
@@ -294,7 +398,7 @@ public class TelegramBotService
             replyMarkup: new ReplyKeyboardRemove());
     }
 
-    private async Task<Message> RegisterUser(ITelegramBotClient bot, Message message)
+    private async Task<Message> RegisterUserHandler(ITelegramBotClient bot, Message message)
     {
         var httpClient = _httpClientFactory.CreateClient();
         var tgUser = message.From!;
@@ -345,16 +449,31 @@ public class TelegramBotService
         return httpResponseMessage.StatusCode != HttpStatusCode.NotFound;
     }
 
+    
     // Process Inline Keyboard callback data
-    private async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery)
+    private async Task<Message> BotOnCallbackQueryReceived(CallbackQuery callbackQuery)
     {
-        await _botClient.AnswerCallbackQueryAsync(
-            callbackQueryId: callbackQuery.Id,
-            text: $"Received {callbackQuery.Data}");
+        if (callbackQuery.Message == null)
+            return await _botClient.SendTextMessageAsync(
+                chatId: callbackQuery.Message!.Chat.Id,
+                text: $"Received {callbackQuery.Data}");
+        
+        var message = callbackQuery.Message;
+        return await (
+            callbackQuery.Data switch
+        {
+            "add" => AddCategoryHandler(_botClient, message),
+            "edit" => EditCategoryHandler(_botClient, message),
+            "remove" => RemoveCategoryHandler(_botClient, message),
+            "back" => BackCategoryHandler(_botClient, message),
+            // _ => ShowCategoriesMessage(_botClient, message.Chat.Id, userCategories)
+            _ => UnknownCategoryHandler(_botClient, message)
+        });
 
-        await _botClient.SendTextMessageAsync(
-            chatId: callbackQuery.Message!.Chat.Id,
-            text: $"Received {callbackQuery.Data}");
+        // return await _botClient.AnswerCallbackQueryAsync(
+        //     callbackQueryId: callbackQuery.Id,
+        //     text: $"Received {callbackQuery.Data}");
+        //
     }
 
     private async Task BotOnInlineQueryReceived(InlineQuery inlineQuery)
