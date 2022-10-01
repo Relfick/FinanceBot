@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using FinanceBot.Models;
 
 namespace FinanceBot.Models;
 
@@ -9,6 +10,7 @@ public class ApplicationContext: DbContext
     
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<Expense> Expenses { get; set; } = null!;
+    public DbSet<UserExpenseCategory> UserExpenseCategories { get; set; } = null!;
 
     public ApplicationContext()
     {
@@ -21,4 +23,5 @@ public class ApplicationContext: DbContext
             ConnectionString,
             ServerVersion.AutoDetect(ConnectionString));
     } 
+    
 }

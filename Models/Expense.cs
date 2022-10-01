@@ -18,6 +18,4 @@ public class Expense
         this.expenseCategory = expenseCategory;
         this.date = date;
     }
-
-    
 }
