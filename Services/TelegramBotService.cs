@@ -230,47 +230,63 @@ public class TelegramBotService
         var httpClient = _httpClientFactory.CreateClient();
         var tgUser = message.From!;
 
-        var userId = tgUser.Id;
+        var tgUserId = tgUser.Id;
 
-        var userCategories = GetUserCategories();
+        var userCategories = await GetUserCategories(httpClient, tgUserId);
+        var hasCategories = userCategories.Count > 0;
+        
+        return await ShowCategoriesMessage(bot, message.Chat.Id, userCategories, hasCategories);
 
-        var action = await ShowCategoriesMessage(bot, message.Chat.Id, userCategories);
-        return action;
-
-        return await bot.SendTextMessageAsync(
-            chatId: message.Chat.Id,
-            text: "жопапенис",
-            replyMarkup: new ReplyKeyboardRemove());
+        // return await bot.SendTextMessageAsync(
+        //     chatId: message.Chat.Id,
+        //     text: "жопапенис",
+        //     replyMarkup: new ReplyKeyboardRemove());
     }
 
-    private async Task<Message> ShowCategoriesMessage(
-        ITelegramBotClient bot, 
-        long chatId, 
-        List<string> userCategories)
+    private async Task<Message> ShowCategoriesMessage(ITelegramBotClient bot, long chatId, 
+        List<string> userCategories,
+        bool hasCategories = true)
     {
         var responseMessage = new StringBuilder();
-        responseMessage.Append("Текущие категории:\n\n");
-        foreach (string category in userCategories)
+
+        InlineKeyboardMarkup inlineKeyboard;
+        if (hasCategories)
         {
-            responseMessage.Append($"    {category}\n");
-        }
-
-        responseMessage.Append("\nВыберите действие:");
-
-        InlineKeyboardMarkup inlineKeyboard = new(
-            new[]
+            responseMessage.Append("Текущие категории:\n\n");
+            foreach (string category in userCategories)
             {
+                responseMessage.Append($"    {category}\n");
+            }
+            
+            inlineKeyboard = new InlineKeyboardMarkup(
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Добавить", "add"),
-                    InlineKeyboardButton.WithCallbackData("Удалить", "remove"),
-                },
+                    new[]
+                    {
+                        InlineKeyboardButton.WithCallbackData("Добавить", "add"),
+                        InlineKeyboardButton.WithCallbackData("Удалить", "remove"),
+                    },
+                    new[]
+                    {
+                        InlineKeyboardButton.WithCallbackData("Изменить", "edit"),
+                        InlineKeyboardButton.WithCallbackData("Назад", "back"),
+                    },
+                });
+        }
+        else
+        {
+            responseMessage.Append("Вы еще не добавили категории.\n\nВыберите действие:");
+            
+            inlineKeyboard = new InlineKeyboardMarkup(
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Изменить", "edit"),
-                    InlineKeyboardButton.WithCallbackData("Назад", "back"),
-                },
-            });
+                    new[]
+                    {
+                        InlineKeyboardButton.WithCallbackData("Добавить", "add"),
+                        InlineKeyboardButton.WithCallbackData("Назад", "back"),
+                    },
+                });
+        }
         
         return await bot.SendTextMessageAsync(
             chatId: chatId,
@@ -322,9 +338,30 @@ public class TelegramBotService
     }
     
 
-    private List<string> GetUserCategories()
+    private async Task<List<string>> GetUserCategories(HttpClient httpClient, long tgUserId)
     {
-        return new List<string> { "еда", "одежда", "продукты" };
+        var httpRequestMessage = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"https://localhost:7166/api/UserExpenseCategory/{tgUserId}")
+        {
+            Headers =
+            {
+                { HeaderNames.Accept, "application/json" },
+                { HeaderNames.UserAgent, "HttpRequestsSample" },
+            }
+        };
+        
+        // var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage);
+        var httpResponseMessage = await httpClient.GetAsync($"https://localhost:7166/api/UserExpenseCategory/{tgUserId}");
+        if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
+            return new List<string>();
+
+        var userExpenseCategories = await httpResponseMessage.Content.ReadFromJsonAsync<List<UserExpenseCategory>>();
+        if (userExpenseCategories == null)
+            return new List<string>();
+
+        var categories = userExpenseCategories.Select(c => c.expenseCategory).ToList();
+        return categories;
     }
 
     private async Task<Message> AddExpenseHandler(ITelegramBotClient bot, Message message)
