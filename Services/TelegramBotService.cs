@@ -106,7 +106,8 @@ public class TelegramBotService
         if (message.Type != MessageType.Text)
             return;
         Console.WriteLine($"Message: {message.Text}");
-
+        Console.WriteLine($"UserId: {message.From!.Id}");
+        
         var action = message.Text!.Split(' ')[0] switch
         {
             "/start"    => RegisterUserHandler(_botClient, message),
@@ -117,11 +118,11 @@ public class TelegramBotService
             // "/photo"    => SendFile(_botClient, message),
             // "/request"  => RequestContactAndLocation(_botClient, message),
             "/help"     => UsageHandler(_botClient, message),
-            _           => AddExpenseHandler(_botClient, message)
+            _           => CommonMessageHandler(_botClient, message)
         };
         Message sentMessage = await action;
         Console.WriteLine($"The message was sent with id: {sentMessage.MessageId}");
-
+        
         
         // Send inline keyboard
         // You can process responses in BotOnCallbackQueryReceived handler
@@ -229,7 +230,6 @@ public class TelegramBotService
     {
         var httpClient = _httpClientFactory.CreateClient();
         var tgUser = message.From!;
-
         var tgUserId = tgUser.Id;
 
         var userCategories = await GetUserCategories(httpClient, tgUserId);
@@ -239,7 +239,7 @@ public class TelegramBotService
 
         // return await bot.SendTextMessageAsync(
         //     chatId: message.Chat.Id,
-        //     text: "жопапенис",
+        //     text: "some text",
         //     replyMarkup: new ReplyKeyboardRemove());
     }
 
@@ -295,14 +295,74 @@ public class TelegramBotService
             allowSendingWithoutReply: false);
     }
 
-    private async Task<Message> AddCategoryHandler(ITelegramBotClient bot, Message message)
+    private async Task<Message> AddCategoryShowInfo(ITelegramBotClient bot, Message message)
     {
+        bool success = await SetWorkMode(_httpClientFactory.CreateClient(), message.Chat.Id, WorkMode.AddCategory);
+        if (success)
+            Console.WriteLine("поменяли режим");
+        else
+            Console.WriteLine("не поменяли режим(((");
+        
         return await bot.SendTextMessageAsync(
             chatId: message.Chat.Id,
-            text: "Выбраное действие: Добавить",
-            replyMarkup: new ReplyKeyboardRemove()); 
+            text: "Введите название для новой категории:",
+            replyMarkup: new ReplyKeyboardRemove()
+            ); 
     }
     
+    private async Task<Message> AddCategoryHandler(ITelegramBotClient bot, Message message)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var tgUser = message.From!;
+        var tgUserId = tgUser.Id;
+        
+        if (message.Text!.Split(" ").Length > 1)
+            return await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: "Название категории должно быть из одного слова!",
+                replyMarkup: new ReplyKeyboardRemove()
+            );
+
+        var newCategory = new UserExpenseCategory(tgUserId, message.Text!);
+        var newCategoryJson = new StringContent(
+            JsonSerializer.Serialize(newCategory),
+            Encoding.UTF8,
+            MediaTypeNames.Application.Json);
+        
+        var httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/UserExpenseCategory", newCategoryJson);
+        if (!httpResponseMessage.IsSuccessStatusCode)
+            return await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: "Какая то ошибка...",
+                replyMarkup: new ReplyKeyboardRemove()
+            );
+
+        bool success = await SetWorkMode(httpClient, tgUserId, WorkMode.Default);
+        if (!success)
+            return await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: "Категорию добавли, а с воркмодом какая то ошибка...",
+                replyMarkup: new ReplyKeyboardRemove()
+            );
+        
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: "Добавили категорию и даже поменяли воркмод!",
+            replyMarkup: new ReplyKeyboardRemove()
+        );
+    }
+
+    private async Task<WorkMode> GetUserWorkMode(HttpClient httpClient, long tgUserId)
+    {
+        var httpResponseMessage = await httpClient.GetAsync($"https://localhost:7166/api/UserWorkmode/{tgUserId}");
+        if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
+            throw new Exception("Попытка получить workMode несуществующего юзера");
+
+        var workMode = await httpResponseMessage.Content.ReadFromJsonAsync<WorkMode>();
+
+        return workMode;
+    }
+
     private async Task<Message> EditCategoryHandler(ITelegramBotClient bot, Message message)
     {
         return await bot.SendTextMessageAsync(
@@ -362,6 +422,25 @@ public class TelegramBotService
 
         var categories = userExpenseCategories.Select(c => c.expenseCategory).ToList();
         return categories;
+    }
+
+    private async Task<Message> CommonMessageHandler(ITelegramBotClient bot, Message message)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var tgUserId = message.From!.Id;
+        
+        var userWorkMode = await GetUserWorkMode(httpClient, tgUserId);
+        Console.WriteLine($"Workmode: {userWorkMode.ToString()}");
+        
+        var action = userWorkMode switch
+        {
+            WorkMode.AddCategory      => AddCategoryHandler(_botClient, message),
+            WorkMode.EditCategory     => EditCategoryHandler(_botClient, message),
+            WorkMode.RemoveCategory   => RemoveCategoryHandler(_botClient, message),
+            _                         => AddExpenseHandler(_botClient, message)
+        };
+        
+        return await action;
     }
 
     private async Task<Message> AddExpenseHandler(ITelegramBotClient bot, Message message)
@@ -453,7 +532,7 @@ public class TelegramBotService
             JsonSerializer.Serialize(newUser),
             Encoding.UTF8,
             MediaTypeNames.Application.Json);
-
+        
         var httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/BotUser", newUserJson);
         string responseMessageText = 
             httpResponseMessage.IsSuccessStatusCode ? 
@@ -462,10 +541,34 @@ public class TelegramBotService
             "/help" : 
             "Error";
 
+        var userWorkMode = new UserWorkMode(tgUser.Id, WorkMode.Default);
+        var newUserWorkMode = new StringContent(
+            JsonSerializer.Serialize(userWorkMode),
+            Encoding.UTF8,
+            MediaTypeNames.Application.Json);
+        
+        httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/UserWorkmode", newUserWorkMode);
+        if (httpResponseMessage.IsSuccessStatusCode)
+            Console.WriteLine("userWorkmode successfully added");
+        else
+            Console.WriteLine("userWorkmode did not added. Error!");
+
         return await bot.SendTextMessageAsync(
             chatId: message.Chat.Id,
             text: responseMessageText,
             replyMarkup: new ReplyKeyboardRemove());
+    }
+
+    private async Task<bool> SetWorkMode(HttpClient httpClient, long tgUserId, WorkMode workMode)
+    {
+        var userWorkMode = new UserWorkMode(tgUserId, workMode);
+        var newUserWorkMode = new StringContent(
+            JsonSerializer.Serialize(userWorkMode),
+            Encoding.UTF8,
+            MediaTypeNames.Application.Json);
+        
+        var httpResponseMessage = await httpClient.PutAsync($"https://localhost:7166/api/UserWorkmode/{tgUserId}", newUserWorkMode);
+        return httpResponseMessage.IsSuccessStatusCode;
     }
 
     private async Task<bool> UserExists(Telegram.Bot.Types.User tgUser, HttpClient httpClient)
@@ -499,7 +602,7 @@ public class TelegramBotService
         return await (
             callbackQuery.Data switch
         {
-            "add" => AddCategoryHandler(_botClient, message),
+            "add" => AddCategoryShowInfo(_botClient, message),
             "edit" => EditCategoryHandler(_botClient, message),
             "remove" => RemoveCategoryHandler(_botClient, message),
             "back" => BackCategoryHandler(_botClient, message),
