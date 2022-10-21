@@ -3,6 +3,7 @@
 using Microsoft.AspNetCore.Mvc;
 using FinanceBot.Models;
 using FinanceBot.Services;
+using FinanceBot.Services.TgBot;
 
 
 namespace FinanceBot.Controllers;

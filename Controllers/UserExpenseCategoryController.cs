@@ -57,21 +57,18 @@ public class UserExpenseCategoryController : ControllerBase
 
     // PUT: api/UserExpenseCategory/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutUserExpenseCategory(int id, UserExpenseCategory userExpenseCategory)
+    [HttpPut("{userId}")]
+    public async Task<IActionResult> PutUserExpenseCategory(long userId, Dictionary<string, string> categoriesDictionary)
     {
-        if (id != userExpenseCategory.id)
-        {
-            return BadRequest();
-        }
-
-        var oldUserExpenseCategory = await _db.UserExpenseCategories.FindAsync(id);
+        var oldCategory = categoriesDictionary["oldCategory"];
+        var newCategory = categoriesDictionary["newCategory"];
+        
+        var oldUserExpenseCategory = await _db.UserExpenseCategories.FirstOrDefaultAsync(
+            u => u.userId == userId && u.expenseCategory == oldCategory);
         if (oldUserExpenseCategory == null)
             return NotFound();
         
-        _db.Entry(userExpenseCategory).State = EntityState.Modified;
-        oldUserExpenseCategory.userId = userExpenseCategory.userId;
-        oldUserExpenseCategory.expenseCategory = userExpenseCategory.expenseCategory;
+        oldUserExpenseCategory.expenseCategory = newCategory;
         
         try
         {
@@ -79,7 +76,7 @@ public class UserExpenseCategoryController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!UserExpenseCategoryExists(id))
+            if (!UserExpenseCategoryExists(userId))
             {
                 return NotFound();
             }
@@ -106,14 +103,14 @@ public class UserExpenseCategoryController : ControllerBase
     }
 
     // DELETE: api/UserExpenseCategory/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUserExpenseCategory(int id)
+    [HttpDelete("{userId}/{category}")]
+    public async Task<IActionResult> DeleteUserExpenseCategory(long userId, string category)
     {
         if (_db.UserExpenseCategories == null)
         {
             return NotFound();
         }
-        var userExpenseCategory = await _db.UserExpenseCategories.FindAsync(id);
+        var userExpenseCategory = await _db.UserExpenseCategories.FirstOrDefaultAsync(u => u.userId == userId && u.expenseCategory == category);
         if (userExpenseCategory == null)
         {
             return NotFound();
