@@ -230,10 +230,15 @@ public static class CategoryHandlers
     
     public static async Task<Message> BackCategoryHandler(ITelegramBotClient bot, Message message)
     {
+        bool success = await Utility.SetWorkMode(message.Chat.Id, WorkMode.Default);
+        Console.WriteLine(success
+            ? $"поменяли режим на {WorkMode.Default.ToString()}"
+            : $"не поменяли режим на {WorkMode.Default.ToString()} (((");
+
         await bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
         return await bot.SendTextMessageAsync(
             chatId: message.Chat.Id,
-            text: "Выбраное действие: Назад",
+            text: "Стандартный режим",
             replyMarkup: new ReplyKeyboardRemove()); 
     }
     
