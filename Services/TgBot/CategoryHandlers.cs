@@ -145,6 +145,10 @@ public static class CategoryHandlers
         
         var oldCategory = splits[0];
         var newCategory = splits[1];
+
+        if (oldCategory == newCategory)
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Вы ввели одинаковые названия");
         
         var contentJson = new StringContent(
             JsonSerializer.Serialize(new Dictionary<string, string>
