@@ -105,14 +105,13 @@ public static class CategoryHandlers
         ITelegramBotClient bot, HttpClient httpClient,
         Message message, long tgUserId)
     {
-        if (message.Text!.Split(" ").Length > 1)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: "Название категории должно быть из одного слова!",
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+        string messageText = message.Text ?? throw new Exception("Null Message.Text in CategoryHandler");
+        messageText = messageText.Trim().ToLower();
+        if (messageText.Split(" ").Length > 1)
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Название категории должно быть из одного слова!");
 
-        var newCategory = new UserExpenseCategory(tgUserId, message.Text!);
+        var newCategory = new UserExpenseCategory(tgUserId, messageText);
         var newCategoryJson = new StringContent(
             JsonSerializer.Serialize(newCategory),
             Encoding.UTF8,
@@ -120,112 +119,83 @@ public static class CategoryHandlers
         
         var httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/UserExpenseCategory", newCategoryJson);
         if (!httpResponseMessage.IsSuccessStatusCode)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: "Какая то ошибка...",
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Не удалось добавить категорию...");
 
         bool success = await Utility.SetWorkMode(tgUserId, WorkMode.Default);
         if (!success)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: "Категорию добавли, а с воркмодом какая то ошибка...",
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Категорию добавили, а с воркмодом какая то ошибка...");
         
-        return await bot.SendTextMessageAsync(
-            chatId: message.Chat.Id,
-            text: "Добавили категорию и даже поменяли воркмод!",
-            replyMarkup: new ReplyKeyboardRemove()
-        );
+        return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            text: "Добавили категорию и даже поменяли воркмод!");
     } 
     
     public static async Task<Message> EditCategoryHandler(
         ITelegramBotClient bot, HttpClient httpClient,
         Message message, long tgUserId)
     {
-        var splits = message.Text!.Split(' ', StringSplitOptions.TrimEntries);
+        string messageText = message.Text ?? throw new Exception("Null Message.Text in CategoryHandler");
+        messageText = messageText.Trim().ToLower();
+        
+        var splits = messageText.Split(' ', StringSplitOptions.TrimEntries);
         if (splits.Length != 2)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: "Используйте формат {старая категория} {новая категория}",
-                replyMarkup: new ReplyKeyboardRemove()
-            ); 
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Используйте формат {старая категория} {новая категория}"); 
         
         var oldCategory = splits[0];
         var newCategory = splits[1];
-
-        var categoriesDictionary = new Dictionary<string, string>
-        {
-            { "oldCategory", oldCategory },
-            { "newCategory", newCategory }
-        };
         
         var contentJson = new StringContent(
-            JsonSerializer.Serialize(categoriesDictionary),
+            JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                { "oldCategory", oldCategory },
+                { "newCategory", newCategory }
+            }),
             Encoding.UTF8,
             MediaTypeNames.Application.Json);
         
         var httpResponseMessage = await httpClient.PutAsync($"https://localhost:7166/api/UserExpenseCategory/{tgUserId}", contentJson);
         
         if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: $"У вас нет категории {oldCategory}",
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: $"У вас нет категории {oldCategory}");
         
         if (!httpResponseMessage.IsSuccessStatusCode)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: "Не удалось изменить категорию...",
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Не удалось изменить категорию...");
 
         bool success = await Utility.SetWorkMode(tgUserId, WorkMode.Default);
         if (!success)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: "Категорию изменили, а с воркмодом какая то ошибка...",
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Категорию изменили, а с воркмодом какая то ошибка...");
         
-        return await bot.SendTextMessageAsync(
-            chatId: message.Chat.Id,
-            text: "Изменили категорию и даже поменяли воркмод!",
-            replyMarkup: new ReplyKeyboardRemove()
-        );
+        return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            text: "Изменили категорию и даже поменяли воркмод!");
     }
     
     public static async Task<Message> RemoveCategoryHandler(
         ITelegramBotClient bot, HttpClient httpClient,
         Message message, long tgUserId)
     {
-        var categoryToRemove = message.Text!;
+        string messageText = message.Text ?? throw new Exception("Null Message.Text in CategoryHandler");
+        messageText = messageText.Trim().ToLower();
+        
+        var categoryToRemove = messageText;
 
         var httpResponseMessage = await httpClient.DeleteAsync($"https://localhost:7166/api/UserExpenseCategory/{tgUserId}/{categoryToRemove}");
         
         if (!httpResponseMessage.IsSuccessStatusCode)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: "Не удалось удалить категорию...",
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Не удалось удалить категорию...");
         
         bool success = await Utility.SetWorkMode(tgUserId, WorkMode.Default);
         if (!success)
-            return await bot.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: "Категорию удалили, а воркмод вернуть не удалось...",
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+                text: "Категорию удалили, а воркмод вернуть не удалось...");
         
-        return await bot.SendTextMessageAsync(
-            chatId: message.Chat.Id,
-            text: "Удалили категорию и даже поменяли воркмод!",
-            replyMarkup: new ReplyKeyboardRemove()
-        );
+        return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            text: "Удалили категорию и даже поменяли воркмод!");
     }
     
     public static async Task<Message> BackCategoryHandler(ITelegramBotClient bot, Message message)
@@ -236,17 +206,13 @@ public static class CategoryHandlers
             : $"не поменяли режим на {WorkMode.Default.ToString()} (((");
 
         await bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
-        return await bot.SendTextMessageAsync(
-            chatId: message.Chat.Id,
-            text: "Стандартный режим",
-            replyMarkup: new ReplyKeyboardRemove()); 
+        return await bot.SendTextMessageAsync(chatId: message.Chat.Id, replyMarkup: new ReplyKeyboardRemove(),
+            text: "Стандартный режим");
     }
     
     public static async Task<Message> UnknownCategoryHandler(ITelegramBotClient bot, Message message)
     {
-        return await bot.SendTextMessageAsync(
-            chatId: message.Chat.Id,
-            text: "Выбраное действие: Неизвестно",
-            replyMarkup: new ReplyKeyboardRemove()); 
+        return await bot.SendTextMessageAsync(chatId: message.Chat.Id, replyMarkup: new ReplyKeyboardRemove(), 
+            text: "Выбраное действие: Неизвестно");
     }
 }
