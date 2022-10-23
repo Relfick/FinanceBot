@@ -24,5 +24,4 @@ public class ApplicationContext: DbContext
             ConnectionString,
             ServerVersion.AutoDetect(ConnectionString));
     } 
-    
 }

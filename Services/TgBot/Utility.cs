@@ -48,14 +48,14 @@ public static class Utility
     
     public static Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
     {
-        var ErrorMessage = exception switch
+        var errorMessage = exception switch
         {
             ApiRequestException apiRequestException
                 => $"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}",
             _ => exception.ToString()
         };
 
-        Console.WriteLine(ErrorMessage);
+        Console.WriteLine(errorMessage);
         return Task.CompletedTask;
     }
     
@@ -72,18 +72,6 @@ public static class Utility
 
     public static async Task<List<string>> GetUserCategories(HttpClient httpClient, long tgUserId)
     {
-        var httpRequestMessage = new HttpRequestMessage(
-            HttpMethod.Get,
-            $"https://localhost:7166/api/UserExpenseCategory/{tgUserId}")
-        {
-            Headers =
-            {
-                { HeaderNames.Accept, "application/json" },
-                { HeaderNames.UserAgent, "HttpRequestsSample" },
-            }
-        };
-        
-        // var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage);
         var httpResponseMessage = await httpClient.GetAsync($"https://localhost:7166/api/UserExpenseCategory/{tgUserId}");
         if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
             return new List<string>();

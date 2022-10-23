@@ -77,22 +77,18 @@ public static class CategoryHandler
 
     public static async Task<Message> BaseActionCategoryShowInfo(ITelegramBotClient bot, Message message, WorkMode workMode)
     {
-        // If workMode does not relate to Category
-        if (!new[] { WorkMode.AddCategory, WorkMode.EditCategory, WorkMode.RemoveCategory }.Contains(workMode))
-            throw new Exception($"WorkMode {workMode.ToString()} does not relate to Category");
-        
-        bool success = await Utility.SetWorkMode(message.Chat.Id, workMode);
-        if (success)
-            Console.WriteLine($"поменяли режим на {workMode.ToString()}");
-        else
-            Console.WriteLine($"не поменяли режим на {workMode.ToString()} (((");
-
         string suggest = workMode switch
         {
             WorkMode.AddCategory    => "добавить",
             WorkMode.EditCategory   => "изменить, и новое название через пробел",
-            WorkMode.RemoveCategory => "удалить"
+            WorkMode.RemoveCategory => "удалить",
+            _                       => throw new Exception($"WorkMode {workMode.ToString()} does not relate to Category")
         };
+        
+        bool success = await Utility.SetWorkMode(message.Chat.Id, workMode);
+        Console.WriteLine(success
+            ? $"поменяли режим на {workMode.ToString()}"
+            : $"не поменяли режим на {workMode.ToString()} (((");
         
         return await bot.SendTextMessageAsync(
             chatId: message.Chat.Id,

@@ -7,11 +7,11 @@ namespace FinanceBot.Services.TgBot;
 
 public class TelegramBotService
 {
-    private TelegramBotClient _botClient { get; }
+    private TelegramBotClient BotClient { get; }
 
     public TelegramBotService(IConfiguration configuration)
     {
-        _botClient = new TelegramBotClient(configuration["BotToken"]);
+        BotClient = new TelegramBotClient(configuration["BotToken"]);
         
         Console.WriteLine("Запустились!");
     }
@@ -26,38 +26,35 @@ public class TelegramBotService
         };
         try
         {
-            await _botClient.SetMyCommandsAsync(new List<BotCommand>
+            await BotClient.SetMyCommandsAsync(new List<BotCommand>
             {
                 new() { Command = "/help", Description = "Справка" },
                 new() { Command = "/categories", Description = "Редактирование категорий трат" },
                 new() { Command = "/expenses", Description = "Получение списка трат" },
             }, cancellationToken: cts.Token);
                 
-            _botClient.StartReceiving(
+            BotClient.StartReceiving(
                 updateHandler: HandleUpdateAsync,
                 pollingErrorHandler: Utility.HandlePollingErrorAsync,
                 receiverOptions: receiverOptions,
                 cancellationToken: cts.Token
             );
 
-            var me = await _botClient.GetMeAsync(cts.Token);
+            var me = await BotClient.GetMeAsync(cts.Token);
 
             Console.WriteLine($"Start listening for @{me.Username}");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            
+            // ignored
         }
         finally
         {
-            // Console.ReadLine();
-
-            // Send cancellation request to stop bot
-            // cts.Cancel();
+            cts.Cancel();
         }
     }
 
-    private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
+    private static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
         CancellationToken cancellationToken)
     {
         var handler = update.Type switch
@@ -82,7 +79,7 @@ public class TelegramBotService
         }
         catch (Exception exception)
         {
-            // await HandlePollingErrorAsync(exception);
+            await Utility.HandlePollingErrorAsync(botClient, exception, cancellationToken);
         }
     }
 }

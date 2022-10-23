@@ -1,5 +1,4 @@
 using FinanceBot.Models;
-using FinanceBot.Services;
 using FinanceBot.Services.TgBot;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -36,7 +36,7 @@ public static class GlobalHandler
             // "/request"  => RequestContactAndLocation(_botClient, message),
             _              => CommonMessageHandler(botClient, message)
         };
-        Message sentMessage = await action;
+        var sentMessage = await action;
         Console.WriteLine($"The message was sent with id: {sentMessage.MessageId}");
         
         
@@ -153,7 +153,7 @@ public static class GlobalHandler
             });
     }
 
-    public static async Task<Message> RegisterUserHandler(ITelegramBotClient bot, Message message)
+    private static async Task<Message> RegisterUserHandler(ITelegramBotClient bot, Message message)
     {
         var httpClient = new HttpClient();
         var tgUser = message.From!;
@@ -197,8 +197,8 @@ public static class GlobalHandler
             text: responseMessageText,
             replyMarkup: new ReplyKeyboardRemove());
     }
-    
-    public static async Task<Message> CommonMessageHandler(ITelegramBotClient bot, Message message)
+
+    private static async Task<Message> CommonMessageHandler(ITelegramBotClient bot, Message message)
     {
         // var httpClient = _httpClientFactory.CreateClient();
         var httpClient = new HttpClient();
