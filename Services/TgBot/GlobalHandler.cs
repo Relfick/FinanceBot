@@ -20,6 +20,7 @@ public static class GlobalHandler
         if (message.Type != MessageType.Text)
             return;
         Console.WriteLine($"Message: {message.Text}");
+        Console.WriteLine($"MessageId: {message.MessageId}");
         Console.WriteLine($"UserId: {message.From!.Id}");
         
         var action = message.Text!.Split(' ')[0] switch
