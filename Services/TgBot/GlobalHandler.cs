@@ -1,9 +1,14 @@
-﻿using FinanceBot.Models;
+﻿using System.Net.Mime;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using FinanceBot.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
+using User = FinanceBot.Models.User;
 
 namespace FinanceBot.Services.TgBot;
 
@@ -19,15 +24,16 @@ public static class GlobalHandler
         
         var action = message.Text!.Split(' ')[0] switch
         {
-            "/start"       => CommonMessageHandlers.RegisterUserHandler(botClient, message),
+            "/start"       => RegisterUserHandler(botClient, message),
             "/categories"  => CategoryHandlers.CategoriesCommandHandler(botClient, message),
+            "/expenses"    => ExpenseHandler.ExpenseCommandHandler(botClient, message),
             "/help"        => HelpCommandHandler(botClient, message),
             // "/inline"   => SendInlineKeyboard(_botClient, message),
             // "/keyboard" => SendReplyKeyboard(_botClient, message),
             // "/remove"   => RemoveKeyboard(_botClient, message),
             // "/photo"    => SendFile(_botClient, message),
             // "/request"  => RequestContactAndLocation(_botClient, message),
-            _              => CommonMessageHandlers.CommonMessageHandler(botClient, message)
+            _              => CommonMessageHandler(botClient, message)
         };
         Message sentMessage = await action;
         Console.WriteLine($"The message was sent with id: {sentMessage.MessageId}");
@@ -117,21 +123,11 @@ public static class GlobalHandler
 
         static async Task<Message> HelpCommandHandler(ITelegramBotClient bot, Message message)
         {
-            const string usage = "Введи траты в формате {Название} {Стоимость} {Категория}\n\n" +
-                                 "Доступные категории: {еда}, {одежда}, {развлечения}\n" +
-                                 "(на самом деле их больше, но ты о них не узнаешь\n\n" +
-                                 "Позже появится возможность редактирования категорий.";
-            
-            // const string usage = "Usage:\n" +
-            //                      "/inline   - send inline keyboard\n" +
-            //                      "/keyboard - send custom keyboard\n" +
-            //                      "/remove   - remove custom keyboard\n" +
-            //                      "/photo    - send a photo\n" +
-            //                      "/request  - request location or contact";
+            const string usage = "Введи траты в формате \n{Название} {Стоимость} {Категория}\n\n" +
+                                 "Для добавления категорий используйте команду /categories";
 
-            return await bot.SendTextMessageAsync(chatId: message.Chat.Id,
-                                                  text: usage,
-                                                  replyMarkup: new ReplyKeyboardRemove());
+            return await bot.SendTextMessageAsync(chatId: message.Chat.Id, replyMarkup: new ReplyKeyboardRemove(),
+                text: usage);
         }
     }
     
@@ -155,4 +151,70 @@ public static class GlobalHandler
                 _ => CategoryHandlers.UnknownCategoryHandler(botClient, message)
             });
     }
+
+    public static async Task<Message> RegisterUserHandler(ITelegramBotClient bot, Message message)
+    {
+        var httpClient = new HttpClient();
+        var tgUser = message.From!;
+
+        if (await Utility.UserExists(tgUser, httpClient))
+        {
+            return await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: "Ты уже в списочке, не переживай.",
+                replyMarkup: new ReplyKeyboardRemove());
+        }
+        
+        var newUser = new User(tgUser.Id, tgUser.FirstName, tgUser.Username ?? "");
+        var newUserJson = new StringContent(
+            JsonSerializer.Serialize(newUser),
+            Encoding.UTF8,
+            MediaTypeNames.Application.Json);
+        
+        var httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/BotUser", newUserJson);
+        string responseMessageText = 
+            httpResponseMessage.IsSuccessStatusCode ? 
+                "Привет! Ты успешно зарегистрирован!\n\n" +
+                "Доступные пока команды: \n\n" +
+                "/help" : 
+                "Error";
+
+        var userWorkMode = new UserWorkMode(tgUser.Id, WorkMode.Default);
+        var newUserWorkMode = new StringContent(
+            JsonSerializer.Serialize(userWorkMode),
+            Encoding.UTF8,
+            MediaTypeNames.Application.Json);
+        
+        httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/UserWorkmode", newUserWorkMode);
+        if (httpResponseMessage.IsSuccessStatusCode)
+            Console.WriteLine("userWorkmode successfully added");
+        else
+            Console.WriteLine("userWorkmode did not added. Error!");
+
+        return await bot.SendTextMessageAsync(
+            chatId: message.Chat.Id,
+            text: responseMessageText,
+            replyMarkup: new ReplyKeyboardRemove());
+    }
+    
+    public static async Task<Message> CommonMessageHandler(ITelegramBotClient bot, Message message)
+    {
+        // var httpClient = _httpClientFactory.CreateClient();
+        var httpClient = new HttpClient();
+        var tgUserId = message.Chat.Id;
+
+        var userWorkMode = await Utility.GetUserWorkMode(httpClient, tgUserId);
+        Console.WriteLine($"Workmode: {userWorkMode.ToString()}");
+
+        var action = userWorkMode switch
+        {
+            WorkMode.AddCategory => CategoryHandlers.AddCategoryHandler(bot, httpClient, message, tgUserId),
+            WorkMode.EditCategory => CategoryHandlers.EditCategoryHandler(bot, httpClient, message, tgUserId),
+            WorkMode.RemoveCategory => CategoryHandlers.RemoveCategoryHandler(bot, httpClient, message, tgUserId),
+            _ => ExpenseHandler.AddExpenseHandler(bot, message)
+        };
+
+        return await action;
+    }
+
 }

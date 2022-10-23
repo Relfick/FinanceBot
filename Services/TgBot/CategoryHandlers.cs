@@ -128,7 +128,7 @@ public static class CategoryHandlers
                 text: "Категорию добавили, а с воркмодом какая то ошибка...");
         
         return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
-            text: "Добавили категорию и даже поменяли воркмод!");
+            text: "Добавили категорию!");
     } 
     
     public static async Task<Message> EditCategoryHandler(
@@ -175,7 +175,7 @@ public static class CategoryHandlers
                 text: "Категорию изменили, а с воркмодом какая то ошибка...");
         
         return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
-            text: "Изменили категорию и даже поменяли воркмод!");
+            text: "Изменили категорию!");
     }
     
     public static async Task<Message> RemoveCategoryHandler(
@@ -199,7 +199,7 @@ public static class CategoryHandlers
                 text: "Категорию удалили, а воркмод вернуть не удалось...");
         
         return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
-            text: "Удалили категорию и даже поменяли воркмод!");
+            text: "Удалили категорию!");
     }
     
     public static async Task<Message> BackCategoryHandler(ITelegramBotClient bot, Message message)

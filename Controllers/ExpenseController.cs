@@ -27,21 +27,21 @@ namespace FinanceBot.Controllers
         }
 
         // GET: api/Expense/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Expense>> GetExpense(int id)
+        [HttpGet("{userId}")]
+        public async Task<ActionResult<List<Expense>>> GetExpense(long userId)
         {
-          if (_db.Expenses == null)
-          {
-              return NotFound();
-          }
-            var expense = await _db.Expenses.FindAsync(id);
+            if (_db.Expenses == null)
+            {
+                return NotFound();
+            }
+            List<Expense> expenses = await _db.Expenses.Where(u => u.userId == userId).ToListAsync();
 
-            if (expense == null)
+            if (expenses.Count == 0)
             {
                 return NotFound();
             }
 
-            return expense;
+            return expenses;
         }
 
         // PUT: api/Expense/5

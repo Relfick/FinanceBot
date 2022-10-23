@@ -21,7 +21,8 @@ public class TelegramBotService
         using var cts = new CancellationTokenSource();
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = Array.Empty<UpdateType>() // receive all update types
+            AllowedUpdates = Array.Empty<UpdateType>(), // receive all update types
+            ThrowPendingUpdates = true,
         };
         try
         {
@@ -29,6 +30,7 @@ public class TelegramBotService
             {
                 new() { Command = "/help", Description = "Справка" },
                 new() { Command = "/categories", Description = "Редактирование категорий трат" },
+                new() { Command = "/expenses", Description = "Получение списка трат" },
             }, cancellationToken: cts.Token);
                 
             _botClient.StartReceiving(
