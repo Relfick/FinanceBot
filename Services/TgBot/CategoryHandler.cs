@@ -9,7 +9,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace FinanceBot.Services.TgBot;
 
-public static class CategoryHandlers
+public static class CategoryHandler
 {
     public static async Task<Message> CategoriesCommandHandler(ITelegramBotClient bot, Message message)
     {

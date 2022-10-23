@@ -69,6 +69,15 @@ public class UserExpenseCategoryController : ControllerBase
             return NotFound();
         
         oldUserExpenseCategory.expenseCategory = newCategory;
+
+        var userExpenses = await _db.Expenses
+            .Where(ue => ue.userId == userId && ue.expenseCategory == oldCategory)
+            .ToListAsync();
+        
+        foreach (var ue in userExpenses)
+        {
+            ue.expenseCategory = newCategory;
+        }
         
         try
         {
@@ -77,9 +86,7 @@ public class UserExpenseCategoryController : ControllerBase
         catch (DbUpdateConcurrencyException)
         {
             if (!UserExpenseCategoryExists(userId))
-            {
                 return NotFound();
-            }
 
             throw;
         }

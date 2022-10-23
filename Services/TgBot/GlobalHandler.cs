@@ -25,7 +25,7 @@ public static class GlobalHandler
         var action = message.Text!.Split(' ')[0] switch
         {
             "/start"       => RegisterUserHandler(botClient, message),
-            "/categories"  => CategoryHandlers.CategoriesCommandHandler(botClient, message),
+            "/categories"  => CategoryHandler.CategoriesCommandHandler(botClient, message),
             "/expenses"    => ExpenseHandler.ExpenseCommandHandler(botClient, message),
             "/help"        => HelpCommandHandler(botClient, message),
             // "/inline"   => SendInlineKeyboard(_botClient, message),
@@ -144,11 +144,11 @@ public static class GlobalHandler
         return await (
             callbackQuery.Data switch
             {
-                "add" => CategoryHandlers.BaseActionCategoryShowInfo(botClient, message, WorkMode.AddCategory),
-                "edit" => CategoryHandlers.BaseActionCategoryShowInfo(botClient, message, WorkMode.EditCategory),
-                "remove" => CategoryHandlers.BaseActionCategoryShowInfo(botClient, message, WorkMode.RemoveCategory),
-                "back" => CategoryHandlers.BackCategoryHandler(botClient, message),
-                _ => CategoryHandlers.UnknownCategoryHandler(botClient, message)
+                "add" => CategoryHandler.BaseActionCategoryShowInfo(botClient, message, WorkMode.AddCategory),
+                "edit" => CategoryHandler.BaseActionCategoryShowInfo(botClient, message, WorkMode.EditCategory),
+                "remove" => CategoryHandler.BaseActionCategoryShowInfo(botClient, message, WorkMode.RemoveCategory),
+                "back" => CategoryHandler.BackCategoryHandler(botClient, message),
+                _ => CategoryHandler.UnknownCategoryHandler(botClient, message)
             });
     }
 
@@ -208,9 +208,9 @@ public static class GlobalHandler
 
         var action = userWorkMode switch
         {
-            WorkMode.AddCategory => CategoryHandlers.AddCategoryHandler(bot, httpClient, message, tgUserId),
-            WorkMode.EditCategory => CategoryHandlers.EditCategoryHandler(bot, httpClient, message, tgUserId),
-            WorkMode.RemoveCategory => CategoryHandlers.RemoveCategoryHandler(bot, httpClient, message, tgUserId),
+            WorkMode.AddCategory => CategoryHandler.AddCategoryHandler(bot, httpClient, message, tgUserId),
+            WorkMode.EditCategory => CategoryHandler.EditCategoryHandler(bot, httpClient, message, tgUserId),
+            WorkMode.RemoveCategory => CategoryHandler.RemoveCategoryHandler(bot, httpClient, message, tgUserId),
             _ => ExpenseHandler.AddExpenseHandler(bot, message)
         };
 
