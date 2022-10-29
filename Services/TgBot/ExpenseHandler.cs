@@ -7,7 +7,6 @@ using FinanceBot.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using User = FinanceBot.Models.User;
 
 namespace FinanceBot.Services.TgBot;
 

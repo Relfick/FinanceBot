@@ -50,7 +50,7 @@ public class TelegramBotService
         }
         finally
         {
-            cts.Cancel();
+            // cts.Cancel();
         }
     }
 

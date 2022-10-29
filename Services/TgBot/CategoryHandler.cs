@@ -97,6 +97,7 @@ public static class CategoryHandler
         ); 
     }
 
+    // TODO: check if new category already exists
     public static async Task<Message> AddCategoryHandler(
         ITelegramBotClient bot, HttpClient httpClient,
         Message message, long tgUserId)
@@ -181,6 +182,7 @@ public static class CategoryHandler
             text: "Изменили категорию!");
     }
     
+    // TODO: alert about existing expenses with this category
     public static async Task<Message> RemoveCategoryHandler(
         ITelegramBotClient bot, HttpClient httpClient,
         Message message, long tgUserId)
