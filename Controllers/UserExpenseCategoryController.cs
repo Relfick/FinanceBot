@@ -45,14 +45,17 @@ public class UserExpenseCategoryController : ControllerBase
 
     // GET: api/UserExpenseCategory/5/
     [HttpGet("{userId}")]
-    public async Task<ActionResult<List<UserExpenseCategory>>> GetUserExpenseCategories(long userId)
+    public async Task<ActionResult<List<string>>> GetUserExpenseCategories(long userId)
     {
         if (_db.UserExpenseCategories == null)
         {
             return NotFound();
         }
 
-        return await _db.UserExpenseCategories.Where(user => user.userId == userId).ToListAsync();
+        var categories = await _db.UserExpenseCategories.Where(user => user.userId == userId)
+            .Select(c => c.expenseCategory)
+            .ToListAsync();
+        return categories;
     }
 
     // PUT: api/UserExpenseCategory/5
@@ -109,7 +112,7 @@ public class UserExpenseCategoryController : ControllerBase
         return CreatedAtAction("GetUserExpenseCategory", new { id = userExpenseCategory.id }, userExpenseCategory);
     }
 
-    // DELETE: api/UserExpenseCategory/5
+    // DELETE: api/UserExpenseCategory/5/food
     [HttpDelete("{userId}/{category}")]
     public async Task<IActionResult> DeleteUserExpenseCategory(long userId, string category)
     {

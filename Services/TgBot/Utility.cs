@@ -42,20 +42,6 @@ public static class Utility
         return workMode;
     }
 
-    public static async Task<List<string>> GetUserCategories(HttpClient httpClient, long tgUserId)
-    {
-        var httpResponseMessage = await httpClient.GetAsync($"https://localhost:7166/api/UserExpenseCategory/{tgUserId}");
-        if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
-            return new List<string>();
-
-        var userExpenseCategories = await httpResponseMessage.Content.ReadFromJsonAsync<List<UserExpenseCategory>>();
-        if (userExpenseCategories == null)
-            return new List<string>();
-
-        var categories = userExpenseCategories.Select(c => c.expenseCategory).ToList();
-        return categories;
-    }
-
     public static async Task<bool> SetWorkMode(long tgUserId, WorkMode workMode)
     {
         var httpClient = new HttpClient();
@@ -84,6 +70,6 @@ public static class Utility
         };
         
         var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage);
-        return httpResponseMessage.StatusCode != HttpStatusCode.NotFound;
+        return httpResponseMessage.IsSuccessStatusCode;
     }
 }

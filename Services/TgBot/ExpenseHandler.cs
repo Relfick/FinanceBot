@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FinanceBot.Models;
+using FinanceBot.Services.TgBot.ModelsApi;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -16,6 +17,8 @@ public class ExpenseHandler
     private readonly ITelegramBotClient _bot;
     private readonly Message _message;
     private readonly long _tgUserId;
+    private readonly ExpenseApi _expenseApi;
+    private readonly ExpenseCategoryApi _categoryApi;
 
     public ExpenseHandler(ITelegramBotClient bot, Message message, HttpClient httpClient)
     {
@@ -23,6 +26,8 @@ public class ExpenseHandler
         _bot = bot;
         _message = message;
         _tgUserId = message.Chat.Id;
+        _expenseApi = new ExpenseApi();
+        _categoryApi = new ExpenseCategoryApi();
     }
 
     public async Task<Message> AddExpenseHandler()
@@ -30,10 +35,8 @@ public class ExpenseHandler
         var r = new Regex(@"(?<name>(\w+\s)+)(?<cost>\d+)\s(?<category>(\w+\s*)+)", RegexOptions.Compiled);
         var m = r.Match(_message.Text!);
         if (!m.Success)
-        {
             return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: "Используйте формат {покупка} {цена} {категория}");
-        }
 
         var expenseName = m.Result("${name}").Trim().ToLower();
         var expenseCost = int.Parse(m.Result("${cost}"));
@@ -43,7 +46,7 @@ public class ExpenseHandler
             return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: "Не используйте больше 15 символов в названии покупки/категории.");
 
-        var userCategories = await Utility.GetUserCategories(_httpClient, _tgUserId);
+        var userCategories = await _categoryApi.GetUserCategories(_tgUserId);
         if (!userCategories.Contains(expenseCategory))
             return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: $"У вас нет категории {expenseCategory}");
@@ -52,14 +55,9 @@ public class ExpenseHandler
 
         var expense = new Expense(_tgUserId, expenseName, expenseCost, expenseCategory, expenseDate);
         
-        var expenseJson = new StringContent(
-            JsonSerializer.Serialize(expense),
-            Encoding.UTF8,
-            MediaTypeNames.Application.Json);
-        
-        var httpResponseMessage = await _httpClient.PostAsJsonAsync("https://localhost:7166/api/Expense", expenseJson);
+        bool success = await _expenseApi.PostExpense(expense);
         string responseMessageText = 
-            httpResponseMessage.IsSuccessStatusCode ? 
+            success ? 
                 "Добавили!" : 
                 "Не удалось добавить (";
 
@@ -69,19 +67,11 @@ public class ExpenseHandler
 
     public async Task<Message> ExpenseCommandHandler()
     {
-        var httpResponseMessage = await _httpClient.GetAsync($"https://localhost:7166/api/Expense/{_tgUserId}");
-        if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
-            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
-                text: "У вас пока нет ни одной траты.");
+        List<Expense> expenses = await _expenseApi.GetExpenses(_tgUserId);
         
-        if (!httpResponseMessage.IsSuccessStatusCode)
+        if (expenses.Count == 0)
             return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
-                text: "Ошибка получения трат ((");
-                
-        var expenses = await httpResponseMessage.Content.ReadFromJsonAsync<List<Expense>>();
-        if (expenses == null)
-            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
-                text: "expenses почему то null");
+                text: "На данный момент у вас нет трат");
         
         var lastDate = DateTime.Now.AddDays(-3);
         var nowDate = DateTime.Now;

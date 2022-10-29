@@ -12,16 +12,16 @@ namespace FinanceBot.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class BotUserController : ControllerBase
+public class UserController : ControllerBase
 {
     private readonly ApplicationContext _db;
 
-    public BotUserController(ApplicationContext db)
+    public UserController(ApplicationContext db)
     {
         this._db = db;
     }
 
-    // GET: api/BotUser
+    // GET: api/User
     [HttpGet]
     public async Task<ActionResult<IEnumerable<User>>> GetUsers()
     {
@@ -32,7 +32,7 @@ public class BotUserController : ControllerBase
         return await _db.Users.ToListAsync();
     }
 
-    // GET: api/BotUser/5
+    // GET: api/tUser/5
     [HttpGet("{id}")]
     public async Task<ActionResult<User>> GetUser(long id)
     {
@@ -49,7 +49,7 @@ public class BotUserController : ControllerBase
         return user;
     }
 
-    // PUT: api/BotUser/5
+    // PUT: api/User/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
     public async Task<IActionResult> PutUser(long id, User user)
@@ -80,7 +80,7 @@ public class BotUserController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/BotUser
+    // POST: api/User
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
     public async Task<ActionResult<User>> PostUser(User user)
@@ -95,7 +95,7 @@ public class BotUserController : ControllerBase
         return CreatedAtAction("GetUser", new { id = user.id }, user);
     }
 
-    // DELETE: api/BotUser/5
+    // DELETE: api/User/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(long id)
     {
