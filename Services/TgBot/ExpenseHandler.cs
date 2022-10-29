@@ -10,17 +10,28 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace FinanceBot.Services.TgBot;
 
-public static class ExpenseHandler
+public class ExpenseHandler
 {
-    public static async Task<Message> AddExpenseHandler(ITelegramBotClient bot, Message message)
+    private readonly HttpClient _httpClient;
+    private readonly ITelegramBotClient _bot;
+    private readonly Message _message;
+    private readonly long _tgUserId;
+
+    public ExpenseHandler(ITelegramBotClient bot, Message message, HttpClient httpClient)
     {
-        var httpClient = new HttpClient();
-        var tgUserId = message.Chat.Id;
+        _httpClient = httpClient;
+        _bot = bot;
+        _message = message;
+        _tgUserId = message.Chat.Id;
+    }
+
+    public async Task<Message> AddExpenseHandler()
+    {
         var r = new Regex(@"(?<name>(\w+\s)+)(?<cost>\d+)\s(?<category>(\w+\s*)+)", RegexOptions.Compiled);
-        var m = r.Match(message.Text!);
+        var m = r.Match(_message.Text!);
         if (!m.Success)
         {
-            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: "Используйте формат {покупка} {цена} {категория}");
         }
 
@@ -29,50 +40,47 @@ public static class ExpenseHandler
         string expenseCategory = m.Result("${category}").Trim().ToLower();
         
         if (expenseName.Length > 15 || expenseCategory.Length > 15)
-            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: "Не используйте больше 15 символов в названии покупки/категории.");
 
-        var userCategories = await Utility.GetUserCategories(httpClient, tgUserId);
+        var userCategories = await Utility.GetUserCategories(_httpClient, _tgUserId);
         if (!userCategories.Contains(expenseCategory))
-            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: $"У вас нет категории {expenseCategory}");
 
         var expenseDate = DateTime.Now;
 
-        var expense = new Expense(tgUserId, expenseName, expenseCost, expenseCategory, expenseDate);
+        var expense = new Expense(_tgUserId, expenseName, expenseCost, expenseCategory, expenseDate);
         
         var expenseJson = new StringContent(
             JsonSerializer.Serialize(expense),
             Encoding.UTF8,
             MediaTypeNames.Application.Json);
         
-        var httpResponseMessage = await httpClient.PostAsync("https://localhost:7166/api/Expense", expenseJson);
+        var httpResponseMessage = await _httpClient.PostAsJsonAsync("https://localhost:7166/api/Expense", expenseJson);
         string responseMessageText = 
             httpResponseMessage.IsSuccessStatusCode ? 
                 "Добавили!" : 
                 "Не удалось добавить (";
 
-        return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+        return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
             text: responseMessageText);
     }
 
-    public static async Task<Message> ExpenseCommandHandler(ITelegramBotClient bot, Message message)
+    public async Task<Message> ExpenseCommandHandler()
     {
-        var httpClient = new HttpClient();
-        var tgUserId = message.Chat.Id;
-
-        var httpResponseMessage = await httpClient.GetAsync($"https://localhost:7166/api/Expense/{tgUserId}");
+        var httpResponseMessage = await _httpClient.GetAsync($"https://localhost:7166/api/Expense/{_tgUserId}");
         if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
-            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: "У вас пока нет ни одной траты.");
         
         if (!httpResponseMessage.IsSuccessStatusCode)
-            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: "Ошибка получения трат ((");
                 
         var expenses = await httpResponseMessage.Content.ReadFromJsonAsync<List<Expense>>();
         if (expenses == null)
-            return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
                 text: "expenses почему то null");
         
         var lastDate = DateTime.Now.AddDays(-3);
@@ -95,7 +103,7 @@ public static class ExpenseHandler
             sb.Append($"{expense.date.ToString("dd.MM")}\n");
         }
 
-        return await bot.SendTextMessageAsync(chatId: tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+        return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
             text: sb.ToString());
     }
 }

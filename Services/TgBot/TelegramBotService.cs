@@ -59,17 +59,8 @@ public class TelegramBotService
     {
         var handler = update.Type switch
         {
-            // UpdateType.Unknown:
-            // UpdateType.ChannelPost:
-            // UpdateType.EditedChannelPost:
-            // UpdateType.ShippingQuery:
-            // UpdateType.PreCheckoutQuery:
-            // UpdateType.Poll:
-            UpdateType.Message            => GlobalHandler.BotOnMessageReceived(update.Message!, botClient),
-            UpdateType.EditedMessage      => GlobalHandler.BotOnMessageReceived(update.EditedMessage!, botClient),
-            UpdateType.CallbackQuery      => GlobalHandler.BotOnCallbackQueryReceived(update.CallbackQuery!, botClient),
-            UpdateType.InlineQuery        => Utility.BotOnInlineQueryReceived(update.InlineQuery!, botClient),
-            UpdateType.ChosenInlineResult => Utility.BotOnChosenInlineResultReceived(update.ChosenInlineResult!),
+            UpdateType.Message            => new BotMessageHandler(update.Message, botClient).BotOnMessageReceived(),
+            UpdateType.CallbackQuery      => new BotCallbackQueryHandler(botClient, update.CallbackQuery!).OnCallbackQueryReceived(),
             _                             => Utility.UnknownUpdateHandlerAsync(update)
         };
 

@@ -7,39 +7,11 @@ using Microsoft.Net.Http.Headers;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.InlineQueryResults;
 
 namespace FinanceBot.Services.TgBot;
 
 public static class Utility
 {
-    public static async Task BotOnInlineQueryReceived(InlineQuery inlineQuery, ITelegramBotClient botClient)
-    {
-        Console.WriteLine($"Received inline query from: {inlineQuery.From.Id}");
-
-        InlineQueryResult[] results = {
-            // displayed result
-            new InlineQueryResultArticle(
-                id: "3",
-                title: "TgBots",
-                inputMessageContent: new InputTextMessageContent(
-                    "hello"
-                )
-            )
-        };
-
-        await botClient.AnswerInlineQueryAsync(inlineQueryId: inlineQuery.Id,
-            results: results,
-            isPersonal: true,
-            cacheTime: 0);
-    }
-
-    public static Task BotOnChosenInlineResultReceived(ChosenInlineResult chosenInlineResult)
-    {
-        Console.WriteLine($"Received inline result: {chosenInlineResult.ResultId}");
-        return Task.CompletedTask;
-    }
-
     public static Task UnknownUpdateHandlerAsync(Update update)
     {
         Console.WriteLine($"Unknown update type: {update.Type}");
@@ -97,12 +69,12 @@ public static class Utility
         return httpResponseMessage.IsSuccessStatusCode;
     }
 
-    public static async Task<bool> UserExists(Telegram.Bot.Types.User tgUser, HttpClient httpClient)
+    public static async Task<bool> UserExists(long tgUserId, HttpClient httpClient)
     {
        
         var httpRequestMessage = new HttpRequestMessage(
             HttpMethod.Get,
-            $"https://localhost:7166/api/BotUser/{tgUser.Id}")
+            $"https://localhost:7166/api/BotUser/{tgUserId}")
         {
             Headers =
             {
