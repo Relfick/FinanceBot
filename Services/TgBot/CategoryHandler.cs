@@ -37,7 +37,7 @@ public class CategoryHandler
         return await ShowCategoriesMessage(userCategories, hasCategories);
     }
 
-    private async Task<Message> ShowCategoriesMessage(List<string> userCategories, bool hasCategories = true)
+    private async Task<Message> ShowCategoriesMessage(List<string> userCategories, bool hasCategories)
     {
         var responseMessage = new StringBuilder();
 
@@ -55,13 +55,13 @@ public class CategoryHandler
                 {
                     new[]
                     {
-                        InlineKeyboardButton.WithCallbackData("Добавить", "add"),
-                        InlineKeyboardButton.WithCallbackData("Удалить", "remove"),
+                        InlineKeyboardButton.WithCallbackData("Добавить", "add category"),
+                        InlineKeyboardButton.WithCallbackData("Удалить", "remove category"),
                     },
                     new[]
                     {
-                        InlineKeyboardButton.WithCallbackData("Изменить", "edit"),
-                        InlineKeyboardButton.WithCallbackData("Назад", "back"),
+                        InlineKeyboardButton.WithCallbackData("Изменить", "edit category"),
+                        InlineKeyboardButton.WithCallbackData("Назад", "back category"),
                     },
                 });
         }
@@ -74,8 +74,8 @@ public class CategoryHandler
                 {
                     new[]
                     {
-                        InlineKeyboardButton.WithCallbackData("Добавить", "add"),
-                        InlineKeyboardButton.WithCallbackData("Назад", "back"),
+                        InlineKeyboardButton.WithCallbackData("Добавить", "add category"),
+                        InlineKeyboardButton.WithCallbackData("Назад", "back category"),
                     },
                 });
         }

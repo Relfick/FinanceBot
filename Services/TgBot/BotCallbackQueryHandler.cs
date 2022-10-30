@@ -18,17 +18,38 @@ public class BotCallbackQueryHandler
         _message = callbackQuery.Message;
     }
 
-    // TODO: Add handler for category actions
     public async Task<Message> OnCallbackQueryReceived()
     {
+        if (_callbackQuery.Data == null)
+            throw new Exception("Null in callbackQuery.Data");
+        
+        var actionHandler = _callbackQuery.Data.Split(" ");
+        string action = actionHandler[0];
+        string handler = actionHandler[1];
+
+        return handler switch
+        {
+            "category" => await CategoryCallbackQueryHandler(action),
+            _          => UnknownCallbackQueryHandler(handler, action)
+        };
+    }
+
+    private async Task<Message> CategoryCallbackQueryHandler(string action)
+    {
+        var categoryHandler = new CategoryHandler(_bot, _message);
         return await (
-            _callbackQuery.Data switch
+            action switch
             {
-                "add" => new CategoryHandler(_bot, _message).BaseActionCategoryShowInfo(WorkMode.AddCategory),
-                "edit" => new CategoryHandler(_bot, _message).BaseActionCategoryShowInfo(WorkMode.EditCategory),
-                "remove" => new CategoryHandler(_bot, _message).BaseActionCategoryShowInfo(WorkMode.RemoveCategory),
-                "back" => new CategoryHandler(_bot, _message).BackCategoryHandler(),
-                _ => new CategoryHandler(_bot, _message).UnknownCategoryHandler()
-            });
+                "add" => categoryHandler.BaseActionCategoryShowInfo(WorkMode.AddCategory),
+                "edit" => categoryHandler.BaseActionCategoryShowInfo(WorkMode.EditCategory),
+                "remove" => categoryHandler.BaseActionCategoryShowInfo(WorkMode.RemoveCategory),
+                "back" => categoryHandler.BackCategoryHandler(),
+                _ => categoryHandler.UnknownCategoryHandler()
+            }); 
+    }
+    
+    private Message UnknownCallbackQueryHandler(string handler, string action)
+    {
+        throw new Exception($"Got unknown handler {handler} with action {action}");
     }
 }
