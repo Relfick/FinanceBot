@@ -1,7 +1,4 @@
-﻿using System.Net;
-using System.Net.Mime;
-using System.Text;
-using System.Text.Json;
+﻿using System.Text;
 using FinanceBot.Models;
 using FinanceBot.Services.TgBot.ModelsApi;
 using Telegram.Bot;
@@ -131,8 +128,10 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию добавили, а с воркмодом какая то ошибка...");
         
-        return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
+        await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
             text: "Добавили категорию!");
+
+        return await CategoriesCommandHandler();
     } 
     
     public async Task<Message> EditCategoryHandler()
@@ -170,8 +169,10 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию изменили, а с воркмодом какая то ошибка...");
         
-        return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
+        await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
             text: "Изменили категорию!");
+        
+        return await CategoriesCommandHandler();
     }
     
     // TODO: alert about existing expenses with this category
@@ -192,8 +193,10 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию удалили, а воркмод вернуть не удалось...");
         
-        return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
+        await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
             text: "Удалили категорию!");
+        
+        return await CategoriesCommandHandler();
     }
     
     public async Task<Message> BackCategoryHandler()
