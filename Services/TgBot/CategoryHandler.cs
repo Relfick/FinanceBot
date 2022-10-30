@@ -103,8 +103,9 @@ public class CategoryHandler
     public async Task<Message> AddCategoryHandler()
     {
         string newCategoryText = _messageText.Trim().ToLower();
+        
         if (newCategoryText.Split(" ").Length > 1)
-            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId,
                 text: "Название категории должно быть из одного слова!");
 
         var infoMessage = await _bot.SendTextMessageAsync(chatId: _tgUserId,
@@ -112,7 +113,7 @@ public class CategoryHandler
         
         var userCategories = await _categoryApi.GetUserCategories(_tgUserId);
         if (userCategories.Contains(newCategoryText))
-            return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId,
                 text: $"У вас уже есть категория {newCategoryText}");
         
         var newCategory = new UserExpenseCategory(_tgUserId, newCategoryText);
@@ -130,6 +131,7 @@ public class CategoryHandler
         await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
             text: "Добавили категорию!");
 
+        // Show updated categories
         return await CategoriesCommandHandler();
     } 
     
@@ -171,6 +173,7 @@ public class CategoryHandler
         await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
             text: "Изменили категорию!");
         
+        // Show updated categories
         return await CategoriesCommandHandler();
     }
     
@@ -233,7 +236,8 @@ public class CategoryHandler
         await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
             text: "Удалили категорию!");
         
-        return await CategoriesCommandHandler(); 
+        // Show updated categories
+        return await CategoriesCommandHandler();
     }
     
     public async Task<Message> BackCategoryHandler()
