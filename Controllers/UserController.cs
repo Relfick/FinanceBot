@@ -18,7 +18,7 @@ public class UserController : ControllerBase
 
     public UserController(ApplicationContext db)
     {
-        this._db = db;
+        _db = db;
     }
 
     // GET: api/User
@@ -32,29 +32,27 @@ public class UserController : ControllerBase
         return await _db.Users.ToListAsync();
     }
 
-    // GET: api/tUser/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<User>> GetUser(long id)
+    // GET: api/User/5
+    [HttpGet("{tgUserId}")]
+    public async Task<ActionResult<User>> GetUser(long tgUserId)
     {
         if (_db.Users == null)
-        {
             return NotFound();
-        }
-        var user = await _db.Users.FindAsync(id);
+        
+        var user = await _db.Users.FindAsync(tgUserId);
 
         if (user == null)
-        {
             return NotFound();
-        }
+        
         return user;
     }
 
     // PUT: api/User/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutUser(long id, User user)
+    [HttpPut("{tgUserId}")]
+    public async Task<IActionResult> PutUser(long tgUserId, User user)
     {
-        if (id != user.id)
+        if (tgUserId != user.id)
         {
             return BadRequest();
         }
@@ -67,7 +65,7 @@ public class UserController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!UserExists(id))
+            if (!UserExists(tgUserId))
             {
                 return NotFound();
             }
@@ -96,14 +94,14 @@ public class UserController : ControllerBase
     }
 
     // DELETE: api/User/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(long id)
+    [HttpDelete("{tgUserId}")]
+    public async Task<IActionResult> DeleteUser(long tgUserId)
     {
         if (_db.Users == null)
         {
             return NotFound();
         }
-        var user = await _db.Users.FindAsync(id);
+        var user = await _db.Users.FindAsync(tgUserId);
         if (user == null)
         {
             return NotFound();
@@ -115,8 +113,8 @@ public class UserController : ControllerBase
         return NoContent();
     }
 
-    private bool UserExists(long id)
+    private bool UserExists(long tgUserId)
     {
-        return (_db.Users?.Any(e => e.id == id)).GetValueOrDefault();
+        return (_db.Users?.Any(e => e.id == tgUserId)).GetValueOrDefault();
     }
 }

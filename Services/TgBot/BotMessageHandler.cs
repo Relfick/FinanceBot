@@ -1,7 +1,5 @@
-﻿using System.Net.Mime;
-using System.Text;
-using System.Text.Json;
-using FinanceBot.Models;
+﻿using FinanceBot.Models;
+using FinanceBot.Services.TgBot.ModelsApi;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -14,7 +12,6 @@ public class BotMessageHandler
     private readonly Message _message;
     private readonly long _tgUserId;
     private readonly ITelegramBotClient _bot;
-    private readonly HttpClient _httpClient;
 
     public BotMessageHandler(Message? message, ITelegramBotClient bot)
     {
@@ -23,7 +20,6 @@ public class BotMessageHandler
         _message = message;
         _tgUserId = message.Chat.Id;
         _bot = bot;
-        _httpClient = new HttpClient();
     }
 
     public async Task BotOnMessageReceived()
@@ -33,22 +29,12 @@ public class BotMessageHandler
         var action = _message.Text!.Split(' ')[0] switch
         {
             "/start" => StartCommandHandler(),
-            "/categories" => new CategoryHandler(_bot, _message, _httpClient).CategoriesCommandHandler(),
-            "/expenses" => new ExpenseHandler(_bot, _message, _httpClient).ExpenseCommandHandler(),
+            "/categories" => new CategoryHandler(_bot, _message).CategoriesCommandHandler(),
+            "/expenses" => new ExpenseHandler(_bot, _message).ExpenseCommandHandler(),
             "/help" => HelpCommandHandler(),
             _ => TextMessageHandler()
         };
         await action;
-    }
-
-    private void ShowMessageInfo(Message message)
-    {
-        Console.WriteLine($"Receive message type: {message.Type}");
-        if (message.Type != MessageType.Text)
-            return;
-        Console.WriteLine($"Message: {message.Text}");
-        Console.WriteLine($"MessageId: {message.MessageId}");
-        Console.WriteLine($"UserId: {message.From!.Id}");
     }
 
     private async Task<Message> HelpCommandHandler()
@@ -61,49 +47,56 @@ public class BotMessageHandler
     
     private async Task<Message> StartCommandHandler()
     {
-        if (await Utility.UserExists(_tgUserId, _httpClient))
+        var userApi = new UserApi();
+        var workModeApi = new WorkModeApi();
+        
+        if (await userApi.UserExists(_tgUserId))
             return await _bot.SendTextMessageAsync(
                 chatId: _tgUserId,
                 text: "Ты уже в списочке, не переживай.");
 
-        var newUser = new User(_tgUserId, _message.Chat.FirstName ?? "", _message.Chat.Username ?? "");
-        var newUserJson = new StringContent(
-            JsonSerializer.Serialize(newUser),
-            Encoding.UTF8,
-            MediaTypeNames.Application.Json);
+        string userFirstName = _message.Chat.FirstName ?? "";
+        string userUserName = _message.Chat.Username ?? "";
+        var newUser = new User(_tgUserId, userFirstName, userUserName);
+        var userWorkMode = new UserWorkMode(_tgUserId, WorkMode.Default);
         
-        var httpResponseMessage = await _httpClient.PostAsync("https://localhost:7166/api/BotUser", newUserJson);
-        string responseMessageText = 
-            httpResponseMessage.IsSuccessStatusCode ? 
+        // TODO: Process it correctly
+        bool successUser = await userApi.PostUser(newUser);
+        bool successWorkMode = await workModeApi.PostWorkMode(userWorkMode);
+        bool success = successUser & successWorkMode;
+        
+        string responseMessageText = success ? 
                 "Привет! Ты успешно зарегистрирован!\n\n" +
                 "Доступные пока команды: \n\n" +
                 "/help" : 
-                "Error";
-
-        var userWorkMode = new UserWorkMode(_tgUserId, WorkMode.Default);
-        var newUserWorkMode = new StringContent(
-            JsonSerializer.Serialize(userWorkMode),
-            Encoding.UTF8,
-            MediaTypeNames.Application.Json);
-        
-        await _httpClient.PostAsync("https://localhost:7166/api/UserWorkmode", newUserWorkMode);
+                "Ошибка регистрации...";
 
         return await _bot.SendTextMessageAsync(chatId: _tgUserId, text: responseMessageText);
     }
 
     private async Task<Message> TextMessageHandler()
     {
-        var userWorkMode = await Utility.GetUserWorkMode(_httpClient, _tgUserId);
+        var userWorkMode = await new WorkModeApi().GetWorkMode(_tgUserId);
         Console.WriteLine($"Workmode: {userWorkMode.ToString()}");
 
         var action = userWorkMode switch
         {
-            WorkMode.AddCategory => new CategoryHandler(_bot, _message, _httpClient).AddCategoryHandler(),
-            WorkMode.EditCategory => new CategoryHandler(_bot, _message, _httpClient).EditCategoryHandler(),
-            WorkMode.RemoveCategory => new CategoryHandler(_bot, _message, _httpClient).RemoveCategoryHandler(),
-            _ => new ExpenseHandler(_bot, _message, _httpClient).AddExpenseHandler()
+            WorkMode.AddCategory => new CategoryHandler(_bot, _message).AddCategoryHandler(),
+            WorkMode.EditCategory => new CategoryHandler(_bot, _message).EditCategoryHandler(),
+            WorkMode.RemoveCategory => new CategoryHandler(_bot, _message).RemoveCategoryHandler(),
+            _ => new ExpenseHandler(_bot, _message).AddExpenseHandler()
         };
 
         return await action;
+    }
+    
+    private void ShowMessageInfo(Message message)
+    {
+        Console.WriteLine($"Receive message type: {message.Type}");
+        if (message.Type != MessageType.Text)
+            return;
+        Console.WriteLine($"Message: {message.Text}");
+        Console.WriteLine($"MessageId: {message.MessageId}");
+        Console.WriteLine($"UserId: {message.From!.Id}");
     }
 }

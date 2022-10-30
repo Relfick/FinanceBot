@@ -15,18 +15,18 @@ public class CategoryHandler
     private readonly ITelegramBotClient _bot;
     private readonly Message _message;
     private string _messageText;
-    private readonly HttpClient _httpClient;
     private readonly long _tgUserId;
     private readonly ExpenseCategoryApi _categoryApi;
+    private readonly WorkModeApi _workModeApi;
     
-    public CategoryHandler(ITelegramBotClient bot, Message message, HttpClient httpClient)
+    public CategoryHandler(ITelegramBotClient bot, Message message)
     {
         _bot = bot;
         _message = message;
         _messageText = _message.Text ?? throw new Exception("Message.Text = Null in CategoryHandler");
-        _httpClient = httpClient;
         _tgUserId = message.Chat.Id;
         _categoryApi = new ExpenseCategoryApi();
+        _workModeApi = new WorkModeApi();
     }
     
     public async Task<Message> CategoriesCommandHandler()
@@ -94,7 +94,7 @@ public class CategoryHandler
             _                       => throw new Exception($"WorkMode {workMode.ToString()} does not relate to Category")
         };
         
-        bool success = await Utility.SetWorkMode(_tgUserId, workMode);
+        bool success = await _workModeApi.PutWorkMode(_tgUserId, workMode);
         Console.WriteLine(success
             ? $"поменяли режим на {workMode.ToString()}"
             : $"не поменяли режим на {workMode.ToString()} (((");
@@ -126,7 +126,7 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId, 
                 text: "Не удалось добавить категорию...");
 
-        success = await Utility.SetWorkMode(_tgUserId, WorkMode.Default);
+        success = await _workModeApi.PutWorkMode(_tgUserId, WorkMode.Default);
         if (!success)
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию добавили, а с воркмодом какая то ошибка...");
@@ -165,7 +165,7 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Не удалось изменить категорию...");
 
-        success = await Utility.SetWorkMode(_tgUserId, WorkMode.Default);
+        success = await _workModeApi.PutWorkMode(_tgUserId, WorkMode.Default);
         if (!success)
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию изменили, а с воркмодом какая то ошибка...");
@@ -187,7 +187,7 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Не удалось удалить категорию...");
         
-        success = await Utility.SetWorkMode(_tgUserId, WorkMode.Default);
+        success = await _workModeApi.PutWorkMode(_tgUserId, WorkMode.Default);
         if (!success)
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию удалили, а воркмод вернуть не удалось...");
@@ -198,7 +198,7 @@ public class CategoryHandler
     
     public async Task<Message> BackCategoryHandler()
     {
-        bool success = await Utility.SetWorkMode(_tgUserId, WorkMode.Default);
+        bool success = await _workModeApi.PutWorkMode(_tgUserId, WorkMode.Default);
         Console.WriteLine(success
             ? $"поменяли режим на {WorkMode.Default.ToString()}"
             : $"не поменяли режим на {WorkMode.Default.ToString()} (((");

@@ -13,16 +13,14 @@ namespace FinanceBot.Services.TgBot;
 
 public class ExpenseHandler
 {
-    private readonly HttpClient _httpClient;
     private readonly ITelegramBotClient _bot;
     private readonly Message _message;
     private readonly long _tgUserId;
     private readonly ExpenseApi _expenseApi;
     private readonly ExpenseCategoryApi _categoryApi;
 
-    public ExpenseHandler(ITelegramBotClient bot, Message message, HttpClient httpClient)
+    public ExpenseHandler(ITelegramBotClient bot, Message message)
     {
-        _httpClient = httpClient;
         _bot = bot;
         _message = message;
         _tgUserId = message.Chat.Id;

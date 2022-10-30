@@ -11,11 +11,11 @@ namespace FinanceBot.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class UserWorkmodeController : ControllerBase
+public class UserWorkModeController : ControllerBase
 {
     private readonly ApplicationContext _db;
 
-    public UserWorkmodeController(ApplicationContext db)
+    public UserWorkModeController(ApplicationContext db)
     {
         _db = db;
     }

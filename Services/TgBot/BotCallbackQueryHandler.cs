@@ -7,7 +7,6 @@ namespace FinanceBot.Services.TgBot;
 public class BotCallbackQueryHandler
 {
     private readonly ITelegramBotClient _bot;
-    private readonly HttpClient _httpClient;
     private readonly CallbackQuery _callbackQuery;
     private readonly Message _message;
     
@@ -15,7 +14,6 @@ public class BotCallbackQueryHandler
     {
         ArgumentNullException.ThrowIfNull(callbackQuery.Message);
         _bot = bot;
-        _httpClient = new HttpClient();
         _callbackQuery = callbackQuery;
         _message = callbackQuery.Message;
     }
@@ -26,11 +24,11 @@ public class BotCallbackQueryHandler
         return await (
             _callbackQuery.Data switch
             {
-                "add" => new CategoryHandler(_bot, _message, _httpClient).BaseActionCategoryShowInfo(WorkMode.AddCategory),
-                "edit" => new CategoryHandler(_bot, _message, _httpClient).BaseActionCategoryShowInfo(WorkMode.EditCategory),
-                "remove" => new CategoryHandler(_bot, _message, _httpClient).BaseActionCategoryShowInfo(WorkMode.RemoveCategory),
-                "back" => new CategoryHandler(_bot, _message, _httpClient).BackCategoryHandler(),
-                _ => new CategoryHandler(_bot, _message, _httpClient).UnknownCategoryHandler()
+                "add" => new CategoryHandler(_bot, _message).BaseActionCategoryShowInfo(WorkMode.AddCategory),
+                "edit" => new CategoryHandler(_bot, _message).BaseActionCategoryShowInfo(WorkMode.EditCategory),
+                "remove" => new CategoryHandler(_bot, _message).BaseActionCategoryShowInfo(WorkMode.RemoveCategory),
+                "back" => new CategoryHandler(_bot, _message).BackCategoryHandler(),
+                _ => new CategoryHandler(_bot, _message).UnknownCategoryHandler()
             });
     }
 }
