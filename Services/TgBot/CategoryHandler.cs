@@ -52,13 +52,13 @@ public class CategoryHandler
                 {
                     new[]
                     {
-                        InlineKeyboardButton.WithCallbackData("Добавить", "add category"),
-                        InlineKeyboardButton.WithCallbackData("Удалить", "remove category"),
+                        InlineKeyboardButton.WithCallbackData("Добавить", "category add"),
+                        InlineKeyboardButton.WithCallbackData("Удалить", "category remove"),
                     },
                     new[]
                     {
-                        InlineKeyboardButton.WithCallbackData("Изменить", "edit category"),
-                        InlineKeyboardButton.WithCallbackData("Назад", "back category"),
+                        InlineKeyboardButton.WithCallbackData("Изменить", "category edit"),
+                        InlineKeyboardButton.WithCallbackData("Назад", "category back"),
                     },
                 });
         }
@@ -71,8 +71,8 @@ public class CategoryHandler
                 {
                     new[]
                     {
-                        InlineKeyboardButton.WithCallbackData("Добавить", "add category"),
-                        InlineKeyboardButton.WithCallbackData("Назад", "back category"),
+                        InlineKeyboardButton.WithCallbackData("Добавить", "category add"),
+                        InlineKeyboardButton.WithCallbackData("Назад", "category back"),
                     },
                 });
         }
@@ -109,7 +109,6 @@ public class CategoryHandler
 
         var infoMessage = await _bot.SendTextMessageAsync(chatId: _tgUserId,
             text: "Пытаемся добавить...");
-        Console.WriteLine(infoMessage.MessageId);
         
         var userCategories = await _categoryApi.GetUserCategories(_tgUserId);
         if (userCategories.Contains(newCategoryText))
@@ -175,14 +174,52 @@ public class CategoryHandler
         return await CategoriesCommandHandler();
     }
     
-    // TODO: alert about existing expenses with this category
     public async Task<Message> RemoveCategoryHandler()
     {
+        var expenseApi = new ExpenseApi();
         var infoMessage = await _bot.SendTextMessageAsync(chatId: _tgUserId,
             text: "Пытаемся удалить...");
         
         var categoryToRemove = _messageText.Trim().ToLower();
 
+        List<string> userCategories = await _categoryApi.GetUserCategories(_tgUserId);
+        if (!userCategories.Contains(categoryToRemove))
+            return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
+                text: $"У вас нет категории {categoryToRemove}. Введите название категории, которую хотите удалить:");
+
+        // Get existing expenses with this category
+        List<Expense> expenses = await expenseApi.GetExpensesWithCategory(_tgUserId, categoryToRemove);
+        
+        if (expenses.Count != 0)
+        {
+            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Да", $"continueRemoveCategory confirm {categoryToRemove}"),
+                    InlineKeyboardButton.WithCallbackData("Нет", $"continueRemoveCategory cancel {categoryToRemove}"),
+                });
+                    
+            return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
+                replyMarkup: inlineKeyboard,
+                text: $"У вас есть {expenses.Count} трат c категорией {categoryToRemove}. " +
+                       "При удалении категории они также удалятся. Желаете продолжить?");
+        }
+
+        return await ContinueRemoveCategory(categoryToRemove, true, infoMessage.MessageId);
+    }
+
+    public async Task<Message> ContinueRemoveCategory(string categoryToRemove, bool confirm, int messageId)
+    {
+        await _bot.DeleteMessageAsync(chatId: _tgUserId, messageId: messageId);
+        
+        if (!confirm)
+        {
+            return await _bot.SendTextMessageAsync(chatId: _tgUserId,
+                text: "Не удаляем."); 
+        }
+        
+        var infoMessage = await _bot.SendTextMessageAsync(chatId: _tgUserId,
+            text: "Удаляем..."); 
+        
         bool success = await _categoryApi.DeleteAsync(_tgUserId, categoryToRemove);
         if (!success)
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
@@ -196,7 +233,7 @@ public class CategoryHandler
         await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
             text: "Удалили категорию!");
         
-        return await CategoriesCommandHandler();
+        return await CategoriesCommandHandler(); 
     }
     
     public async Task<Message> BackCategoryHandler()

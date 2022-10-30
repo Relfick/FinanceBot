@@ -35,15 +35,27 @@ public class ExpenseController : ControllerBase
             return NotFound();
         }
         
-        List<Expense> expenses = await _db.Expenses.Where(u => u.userId == tgUserId).ToListAsync();
+        List<Expense> expenses = await _db.Expenses
+            .Where(u => u.userId == tgUserId)
+            .ToListAsync();
 
-        // TODO: Check if needed
-        if (expenses.Count == 0)
+        return expenses;
+    }
+
+    // GET: api/Expense/5/food
+    [HttpGet("{tgUserId}/{category}")]
+    public async Task<ActionResult<List<Expense>>> GetExpensesWithCategory(long tgUserId, string category)
+    {
+        if (_db.Expenses == null)
         {
             return NotFound();
         }
+        
+        List<Expense> expenses = await _db.Expenses
+            .Where(u => u.userId == tgUserId && u.expenseCategory == category)
+            .ToListAsync();
 
-        return expenses;
+        return expenses; 
     }
 
     // PUT: api/Expense/5

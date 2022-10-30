@@ -120,13 +120,21 @@ public class UserExpenseCategoryController : ControllerBase
         {
             return NotFound();
         }
+        
         var userExpenseCategory = await _db.UserExpenseCategories.FirstOrDefaultAsync(u => u.userId == userId && u.expenseCategory == category);
-        if (userExpenseCategory == null)
+
+        var userExpensesWithCategory = await _db.Expenses
+            .Where(e => e.userId == userId && e.expenseCategory == category)
+            .ToListAsync();
+
+        if (userExpenseCategory == null || userExpensesWithCategory.Count == 0)
         {
             return NotFound();
         }
-
+        
         _db.UserExpenseCategories.Remove(userExpenseCategory);
+        _db.Expenses.RemoveRange(userExpensesWithCategory);
+        
         await _db.SaveChangesAsync();
 
         return NoContent();

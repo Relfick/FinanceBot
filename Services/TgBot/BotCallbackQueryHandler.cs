@@ -23,13 +23,17 @@ public class BotCallbackQueryHandler
         if (_callbackQuery.Data == null)
             throw new Exception("Null in callbackQuery.Data");
         
-        var actionHandler = _callbackQuery.Data.Split(" ");
-        string action = actionHandler[0];
-        string handler = actionHandler[1];
+        var split = _callbackQuery.Data.Split(" ");
+        string handler = split[0];
+        string action = split[1];
+        string extraData = "";
+        if (split.Length > 2)
+            extraData = split[2];
 
         return handler switch
         {
             "category" => await CategoryCallbackQueryHandler(action),
+            "continueRemoveCategory" => await ContinueRemoveCategoryCallbackQueryHandler(action, extraData),
             _          => UnknownCallbackQueryHandler(handler, action)
         };
     }
@@ -44,6 +48,21 @@ public class BotCallbackQueryHandler
                 "edit" => categoryHandler.BaseActionCategoryShowInfo(WorkMode.EditCategory),
                 "remove" => categoryHandler.BaseActionCategoryShowInfo(WorkMode.RemoveCategory),
                 "back" => categoryHandler.BackCategoryHandler(),
+                _ => categoryHandler.UnknownCategoryHandler()
+            }); 
+    }
+    
+    private async Task<Message> ContinueRemoveCategoryCallbackQueryHandler(string action, string categoryToRemove)
+    {
+        if (categoryToRemove == "")
+            throw new Exception("Category to remove is empty!");
+        
+        var categoryHandler = new CategoryHandler(_bot, _message);
+        return await (
+            action switch
+            {
+                "confirm" => categoryHandler.ContinueRemoveCategory(categoryToRemove, true, _message.MessageId),
+                "cancel" => categoryHandler.ContinueRemoveCategory(categoryToRemove, false, _message.MessageId),
                 _ => categoryHandler.UnknownCategoryHandler()
             }); 
     }

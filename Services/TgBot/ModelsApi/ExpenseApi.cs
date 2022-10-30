@@ -20,13 +20,27 @@ public class ExpenseApi
         
         var httpResponseMessage = await _httpClient.GetAsync($"api/Expense/{tgUserId}");
         if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound) 
-            errorLog = "У вас пока нет ни одной траты";
-
-        if (!httpResponseMessage.IsSuccessStatusCode)
+            errorLog = "Error with null _db.Expenses";
+        else if (!httpResponseMessage.IsSuccessStatusCode)
             errorLog = "Ошибка получения трат";
 
         return await httpResponseMessage.Content.ReadFromJsonAsync<List<Expense>>() 
                    ?? throw new InvalidOperationException("Conversion from Content to List<Expense> failed!");
+    }
+
+    public async Task<List<Expense>> GetExpensesWithCategory(long tgUserId, string category)
+    {
+        // TODO: Log it
+        string errorLog = "";
+        
+        var httpResponseMessage = await _httpClient.GetAsync($"api/Expense/{tgUserId}/{category}");
+        if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound) 
+            errorLog = "Error with null _db.Expenses";
+        else if (!httpResponseMessage.IsSuccessStatusCode)
+            errorLog = "Ошибка получения трат";
+        
+        return await httpResponseMessage.Content.ReadFromJsonAsync<List<Expense>>() 
+               ?? throw new InvalidOperationException("Conversion from Content to List<Expense> failed!"); 
     }
     
     public async Task<bool> PostExpense(Expense expense)
