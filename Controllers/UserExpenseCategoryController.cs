@@ -36,7 +36,7 @@ public class UserExpenseCategoryController : ControllerBase
     public async Task<ActionResult<UserExpenseCategory>> GetUserExpenseCategory(long userId, string expenseCategory)
     {
         // TODO: Проверить
-        var userExpenseCategory = await _db.UserExpenseCategories.FirstOrDefaultAsync(e => e.userId == userId && e.expenseCategory == expenseCategory);
+        var userExpenseCategory = await _db.UserExpenseCategories.FirstOrDefaultAsync(e => e.UserId == userId && e.ExpenseCategory == expenseCategory);
         if (userExpenseCategory == null)
             return NotFound();
 
@@ -52,8 +52,8 @@ public class UserExpenseCategoryController : ControllerBase
             return NotFound();
         }
 
-        var categories = await _db.UserExpenseCategories.Where(user => user.userId == userId)
-            .Select(c => c.expenseCategory)
+        var categories = await _db.UserExpenseCategories.Where(user => user.UserId == userId)
+            .Select(c => c.ExpenseCategory)
             .ToListAsync();
         return categories;
     }
@@ -67,19 +67,19 @@ public class UserExpenseCategoryController : ControllerBase
         var newCategory = categoriesDictionary["newCategory"];
         
         var oldUserExpenseCategory = await _db.UserExpenseCategories.FirstOrDefaultAsync(
-            u => u.userId == userId && u.expenseCategory == oldCategory);
+            u => u.UserId == userId && u.ExpenseCategory == oldCategory);
         if (oldUserExpenseCategory == null)
             return NotFound();
         
-        oldUserExpenseCategory.expenseCategory = newCategory;
+        oldUserExpenseCategory.ExpenseCategory = newCategory;
 
         var userExpenses = await _db.Expenses
-            .Where(ue => ue.userId == userId && ue.expenseCategory == oldCategory)
+            .Where(ue => ue.UserId == userId && ue.ExpenseCategory == oldCategory)
             .ToListAsync();
         
         foreach (var ue in userExpenses)
         {
-            ue.expenseCategory = newCategory;
+            ue.ExpenseCategory = newCategory;
         }
         
         try
@@ -109,7 +109,7 @@ public class UserExpenseCategoryController : ControllerBase
         _db.UserExpenseCategories.Add(userExpenseCategory);
         await _db.SaveChangesAsync();
 
-        return CreatedAtAction("GetUserExpenseCategory", new { id = userExpenseCategory.id }, userExpenseCategory);
+        return CreatedAtAction("GetUserExpenseCategory", new { id = userExpenseCategory.Id }, userExpenseCategory);
     }
 
     // DELETE: api/UserExpenseCategory/5/food
@@ -121,10 +121,10 @@ public class UserExpenseCategoryController : ControllerBase
             return NotFound();
         }
         
-        var userExpenseCategory = await _db.UserExpenseCategories.FirstOrDefaultAsync(u => u.userId == userId && u.expenseCategory == category);
+        var userExpenseCategory = await _db.UserExpenseCategories.FirstOrDefaultAsync(u => u.UserId == userId && u.ExpenseCategory == category);
 
         var userExpensesWithCategory = await _db.Expenses
-            .Where(e => e.userId == userId && e.expenseCategory == category)
+            .Where(e => e.UserId == userId && e.ExpenseCategory == category)
             .ToListAsync();
 
         if (userExpenseCategory == null || userExpensesWithCategory.Count == 0)
@@ -142,7 +142,7 @@ public class UserExpenseCategoryController : ControllerBase
     
     private bool UserExpenseCategoryExists(long id)
     {
-        return (_db.UserExpenseCategories?.Any(e => e.id == id)).GetValueOrDefault();
+        return (_db.UserExpenseCategories?.Any(e => e.Id == id)).GetValueOrDefault();
     }
 
 }

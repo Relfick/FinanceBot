@@ -39,14 +39,14 @@ public class UserWorkModeController : ControllerBase
         {
             return NotFound();
         }
-        var userWorkMode = await _db.UserWorkModes.FirstOrDefaultAsync(u => u.userId == userId);
+        var userWorkMode = await _db.UserWorkModes.FirstOrDefaultAsync(u => u.UserId == userId);
 
         if (userWorkMode == null)
         {
             return NotFound();
         }
 
-        return userWorkMode.workMode;
+        return userWorkMode.WorkMode;
     }
 
     // PUT: api/UserWorkmode/5
@@ -54,15 +54,15 @@ public class UserWorkModeController : ControllerBase
     [HttpPut("{userId}")]
     public async Task<IActionResult> PutUserWorkMode(long userId, UserWorkMode userWorkMode)
     {
-        if (userId != userWorkMode.userId)
+        if (userId != userWorkMode.UserId)
             return BadRequest();
 
-        var existingUserWorkmode = await _db.UserWorkModes.FirstOrDefaultAsync(u => u.userId == userId);
+        var existingUserWorkmode = await _db.UserWorkModes.FirstOrDefaultAsync(u => u.UserId == userId);
         if (existingUserWorkmode == null)
             return NotFound();
 
         // _db.Entry(userWorkMode).State = EntityState.Modified;
-        existingUserWorkmode.workMode = userWorkMode.workMode;
+        existingUserWorkmode.WorkMode = userWorkMode.WorkMode;
         
         try
         {
@@ -96,7 +96,7 @@ public class UserWorkModeController : ControllerBase
         _db.UserWorkModes.Add(userWorkMode);
         await _db.SaveChangesAsync();
 
-        return CreatedAtAction("GetUserWorkMode", new { id = userWorkMode.id }, userWorkMode);
+        return CreatedAtAction("GetUserWorkMode", new { id = userWorkMode.Id }, userWorkMode);
     }
 
     // DELETE: api/UserWorkmode/5
@@ -121,6 +121,6 @@ public class UserWorkModeController : ControllerBase
 
     private bool UserWorkModeExists(int id)
     {
-        return (_db.UserWorkModes?.Any(e => e.id == id)).GetValueOrDefault();
+        return (_db.UserWorkModes?.Any(e => e.Id == id)).GetValueOrDefault();
     }
 }

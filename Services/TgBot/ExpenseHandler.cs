@@ -75,8 +75,8 @@ public class ExpenseHandler
         var nowDate = DateTime.Now;
         var expensesLinq = 
             from expense in expenses
-            where lastDate < expense.date && expense.date < nowDate
-            orderby expense.date descending
+            where lastDate < expense.Date && expense.Date < nowDate
+            orderby expense.Date descending
             select expense;
 
         expenses = expensesLinq.ToList();
@@ -85,10 +85,10 @@ public class ExpenseHandler
         sb.Append($"Ваши траты c {lastDate.ToString("dd.MM")} по {nowDate.ToString("dd.MM")}:\n\n");
         foreach (var expense in expenses)
         {
-            sb.Append($"{expense.cost}  ");
-            sb.Append($"{expense.name}  ");
-            sb.Append($"[ {expense.expenseCategory} ]  ");
-            sb.Append($"{expense.date.ToString("dd.MM")}\n");
+            sb.Append($"{expense.Cost}  ");
+            sb.Append($"{expense.Name}  ");
+            sb.Append($"[ {expense.ExpenseCategory} ]  ");
+            sb.Append($"{expense.Date.ToString("dd.MM")}\n");
         }
 
         return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),

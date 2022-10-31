@@ -3,7 +3,7 @@ using FinanceBot.Services.TgBot.ModelsApi;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using User = FinanceBot.Models.User;
+using User = FinanceBot.Models.User;    // Telegram.Bot.Types contains the same Class
 
 namespace FinanceBot.Services.TgBot;
 

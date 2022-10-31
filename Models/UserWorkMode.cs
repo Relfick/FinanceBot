@@ -1,4 +1,6 @@
-﻿namespace FinanceBot.Models;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace FinanceBot.Models;
 
 public enum WorkMode
 {
@@ -9,13 +11,13 @@ public enum WorkMode
 }
 public class UserWorkMode
 {
-    public int id { get; set; }
-    public long userId { get; set; }
-    public WorkMode workMode { get; set; }
+    public int Id { get; set; }
+    public long UserId { get; set; }
+    public WorkMode WorkMode { get; set; }
 
     public UserWorkMode(long userId, WorkMode workMode)
     {
-        this.userId = userId;
-        this.workMode = workMode;
+        UserId = userId;
+        WorkMode = workMode;
     }
 }

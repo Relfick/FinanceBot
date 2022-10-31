@@ -36,7 +36,7 @@ public class ExpenseController : ControllerBase
         }
         
         List<Expense> expenses = await _db.Expenses
-            .Where(u => u.userId == tgUserId)
+            .Where(u => u.UserId == tgUserId)
             .ToListAsync();
 
         return expenses;
@@ -52,7 +52,7 @@ public class ExpenseController : ControllerBase
         }
         
         List<Expense> expenses = await _db.Expenses
-            .Where(u => u.userId == tgUserId && u.expenseCategory == category)
+            .Where(u => u.UserId == tgUserId && u.ExpenseCategory == category)
             .ToListAsync();
 
         return expenses; 
@@ -63,7 +63,7 @@ public class ExpenseController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> PutExpense(int id, Expense expense)
     {
-        if (id != expense.id)
+        if (id != expense.Id)
         {
             return BadRequest();
         }
@@ -101,7 +101,7 @@ public class ExpenseController : ControllerBase
         _db.Expenses.Add(expense);
         await _db.SaveChangesAsync();
 
-        return CreatedAtAction("GetExpenses", new { id = expense.id }, expense);
+        return CreatedAtAction("GetExpenses", new { id = expense.Id }, expense);
     }
 
     // DELETE: api/Expense/5
@@ -126,6 +126,6 @@ public class ExpenseController : ControllerBase
 
     private bool ExpenseExists(int id)
     {
-        return (_db.Expenses?.Any(e => e.id == id)).GetValueOrDefault();
+        return (_db.Expenses?.Any(e => e.Id == id)).GetValueOrDefault();
     }
 }

@@ -1,14 +1,16 @@
-﻿namespace FinanceBot.Models;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace FinanceBot.Models;
 
 public class UserExpenseCategory
 {
-    public int id { get; set; }
-    public long userId { get; set; }
-    public string expenseCategory { get; set; }
+    public int Id { get; set; }
+    public long UserId { get; set; }
+    public string ExpenseCategory { get; set; }
     
     public UserExpenseCategory(long userId, string expenseCategory)
     {
-        this.userId = userId;
-        this.expenseCategory = expenseCategory;
+        UserId = userId;
+        ExpenseCategory = expenseCategory;
     }
 }
