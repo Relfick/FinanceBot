@@ -48,7 +48,6 @@ public class BotMessageHandler
     private async Task<Message> StartCommandHandler()
     {
         var userApi = new UserApi();
-        var workModeApi = new WorkModeApi();
         
         if (await userApi.UserExists(_tgUserId))
             return await _bot.SendTextMessageAsync(
@@ -58,12 +57,8 @@ public class BotMessageHandler
         string userFirstName = _message.Chat.FirstName ?? "";
         string userUserName = _message.Chat.Username ?? "";
         var newUser = new User(_tgUserId, userFirstName, userUserName);
-        var userWorkMode = new UserWorkMode(_tgUserId, WorkMode.Default);
         
-        // TODO: Process it correctly
-        bool successUser = await userApi.PostUser(newUser);
-        bool successWorkMode = await workModeApi.PostWorkMode(userWorkMode);
-        bool success = successUser & successWorkMode;
+        bool success = await userApi.PostUser(newUser);
         
         string responseMessageText = success ? 
                 "Привет! Ты успешно зарегистрирован!\n\n" +
@@ -76,14 +71,17 @@ public class BotMessageHandler
 
     private async Task<Message> TextMessageHandler()
     {
-        var userWorkMode = await new WorkModeApi().GetWorkMode(_tgUserId);
+        UserWorkMode? userWorkMode = await new UserApi().GetWorkMode(_tgUserId);
+        if (userWorkMode == null)
+            throw new NullReferenceException("Null in user.WorkMode");
+        
         Console.WriteLine($"Workmode: {userWorkMode.ToString()}");
 
         var action = userWorkMode switch
         {
-            WorkMode.AddCategory => new CategoryHandler(_bot, _message).AddCategoryHandler(),
-            WorkMode.EditCategory => new CategoryHandler(_bot, _message).EditCategoryHandler(),
-            WorkMode.RemoveCategory => new CategoryHandler(_bot, _message).RemoveCategoryHandler(),
+            UserWorkMode.AddCategory => new CategoryHandler(_bot, _message).AddCategoryHandler(),
+            UserWorkMode.EditCategory => new CategoryHandler(_bot, _message).EditCategoryHandler(),
+            UserWorkMode.RemoveCategory => new CategoryHandler(_bot, _message).RemoveCategoryHandler(),
             _ => new ExpenseHandler(_bot, _message).AddExpenseHandler()
         };
 

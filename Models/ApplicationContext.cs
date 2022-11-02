@@ -9,7 +9,6 @@ public sealed class ApplicationContext: DbContext
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<Expense> Expenses { get; set; } = null!;
     public DbSet<UserExpenseCategory> UserExpenseCategories { get; set; } = null!;
-    public DbSet<UserWorkMode> UserWorkModes { get; set; } = null!;
 
     public ApplicationContext(DbContextOptions<ApplicationContext> options) 
         : base(options)
@@ -22,7 +21,6 @@ public sealed class ApplicationContext: DbContext
         modelBuilder.Entity<User>(UserConfigure);
         modelBuilder.Entity<Expense>(ExpenseConfigure);
         modelBuilder.Entity<UserExpenseCategory>(UserExpenseCategoryConfigure);
-        modelBuilder.Entity<UserWorkMode>(UserWorkModeConfigure);
     }
 
     private void UserConfigure(EntityTypeBuilder<User> builder)
@@ -47,12 +45,5 @@ public sealed class ApplicationContext: DbContext
         builder.Property(c => c.Id).HasColumnName("id");
         builder.Property(c => c.UserId).HasColumnName("user_id");
         builder.Property(c=> c.ExpenseCategory).HasColumnName("expense_category");
-    }
-    
-    private void UserWorkModeConfigure(EntityTypeBuilder<UserWorkMode> builder)
-    {
-        builder.Property(w => w.Id).HasColumnName("id");
-        builder.Property(w => w.UserId).HasColumnName("user_id");
-        builder.Property(w => w.WorkMode).HasColumnName("work_mode");
     }
 }

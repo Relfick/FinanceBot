@@ -44,9 +44,9 @@ public class BotCallbackQueryHandler
         return await (
             action switch
             {
-                "add" => categoryHandler.BaseActionCategoryShowInfo(WorkMode.AddCategory),
-                "edit" => categoryHandler.BaseActionCategoryShowInfo(WorkMode.EditCategory),
-                "remove" => categoryHandler.BaseActionCategoryShowInfo(WorkMode.RemoveCategory),
+                "add" => categoryHandler.BaseActionCategoryShowInfo(UserWorkMode.AddCategory),
+                "edit" => categoryHandler.BaseActionCategoryShowInfo(UserWorkMode.EditCategory),
+                "remove" => categoryHandler.BaseActionCategoryShowInfo(UserWorkMode.RemoveCategory),
                 "back" => categoryHandler.BackCategoryHandler(),
                 _ => categoryHandler.UnknownCategoryHandler()
             }); 

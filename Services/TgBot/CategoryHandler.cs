@@ -14,7 +14,7 @@ public class CategoryHandler
     private string _messageText;
     private readonly long _tgUserId;
     private readonly ExpenseCategoryApi _categoryApi;
-    private readonly WorkModeApi _workModeApi;
+    private readonly UserApi _userApi;
     
     public CategoryHandler(ITelegramBotClient bot, Message message)
     {
@@ -23,7 +23,7 @@ public class CategoryHandler
         _messageText = _message.Text ?? throw new Exception("Message.Text = Null in CategoryHandler");
         _tgUserId = message.Chat.Id;
         _categoryApi = new ExpenseCategoryApi();
-        _workModeApi = new WorkModeApi();
+        _userApi = new UserApi();
     }
     
     public async Task<Message> CategoriesCommandHandler()
@@ -81,17 +81,17 @@ public class CategoryHandler
             allowSendingWithoutReply: false, text: responseMessage.ToString());
     }
 
-    public async Task<Message> BaseActionCategoryShowInfo(WorkMode workMode)
+    public async Task<Message> BaseActionCategoryShowInfo(UserWorkMode workMode)
     {
         string suggest = workMode switch
         {
-            WorkMode.AddCategory    => "добавить",
-            WorkMode.EditCategory   => "изменить, и новое название через пробел",
-            WorkMode.RemoveCategory => "удалить",
-            _                       => throw new Exception($"WorkMode {workMode.ToString()} does not relate to Category")
+            UserWorkMode.AddCategory    => "добавить",
+            UserWorkMode.EditCategory   => "изменить, и новое название через пробел",
+            UserWorkMode.RemoveCategory => "удалить",
+            _                       => throw new Exception($"UserWorkMode {workMode.ToString()} does not relate to Category")
         };
         
-        bool success = await _workModeApi.PutWorkMode(_tgUserId, workMode);
+        bool success = await _userApi.SetWorkMode(_tgUserId, workMode);
         Console.WriteLine(success
             ? $"поменяли режим на {workMode.ToString()}"
             : $"не поменяли режим на {workMode.ToString()} (((");
@@ -123,7 +123,7 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId, 
                 text: "Не удалось добавить категорию...");
 
-        success = await _workModeApi.PutWorkMode(_tgUserId, WorkMode.Default);
+        success = await _userApi.SetWorkMode(_tgUserId, UserWorkMode.Default);
         if (!success)
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию добавили, а с воркмодом какая то ошибка...");
@@ -165,7 +165,7 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Не удалось изменить категорию...");
 
-        success = await _workModeApi.PutWorkMode(_tgUserId, WorkMode.Default);
+        success = await _userApi.SetWorkMode(_tgUserId, UserWorkMode.Default);
         if (!success)
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию изменили, а с воркмодом какая то ошибка...");
@@ -228,7 +228,7 @@ public class CategoryHandler
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Не удалось удалить категорию...");
         
-        success = await _workModeApi.PutWorkMode(_tgUserId, WorkMode.Default);
+        success = await _userApi.SetWorkMode(_tgUserId, UserWorkMode.Default);
         if (!success)
             return await _bot.EditMessageTextAsync(chatId: _tgUserId, messageId: infoMessage.MessageId,
                 text: "Категорию удалили, а воркмод вернуть не удалось...");
@@ -242,10 +242,10 @@ public class CategoryHandler
     
     public async Task<Message> BackCategoryHandler()
     {
-        bool success = await _workModeApi.PutWorkMode(_tgUserId, WorkMode.Default);
+        bool success = await _userApi.SetWorkMode(_tgUserId, UserWorkMode.Default);
         Console.WriteLine(success
-            ? $"поменяли режим на {WorkMode.Default.ToString()}"
-            : $"не поменяли режим на {WorkMode.Default.ToString()} (((");
+            ? $"поменяли режим на {UserWorkMode.Default.ToString()}"
+            : $"не поменяли режим на {UserWorkMode.Default.ToString()} (((");
 
         await _bot.DeleteMessageAsync(_tgUserId, _message.MessageId);
         return await _bot.SendTextMessageAsync(chatId: _tgUserId, replyMarkup: new ReplyKeyboardRemove(),

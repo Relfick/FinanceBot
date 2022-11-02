@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace FinanceBot.Models;
+﻿namespace FinanceBot.Models;
 
 
 public class Expense
